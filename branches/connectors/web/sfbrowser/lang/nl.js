@@ -1,2 +1,96 @@
-// You don't need to edit this file. It is generated from the similarly named php file. Do make sure this file can be written to.
-var sLangOk="Ok";var sLangCancel="Annuleren";var sLangReset="Reset";var sLangSelect="Selecteer";var sLangChoose="Kies";var sLangDelete="Verwijder";var sLangView="Toon";var sLangDeselect="Deselecteer";var sLangClose="Sluit";var sLangReload="Herladen";var sLangUpload="Uploaden";var sLangChanged="aangepast";var sLangVideo="video";var sLangPress="Pers";var sLangShow="Toon";var sLangLoad="Laad";var sLangSave="Opslaan";var sLangSaveas="Opslaan als";var sLangLoading="Laden";var sLangType="Type";var sLangName="Naam";var sLangSize="Grootte";var sLangFile="Bestand";var sLangFiletype="Bestandstype";var sLangFilename="Bestandsnaam";var sLangFilesize="Bestandsgrootte";var sLangDate="Datum";var sLangDimensions="Verhoudingen";var sLangTitle="Titel";var sLangThumbnail="Thumbnail";var sLangWork="Werk";var sLangSfb="SFBrowser";var sLangFileUploaded="Bestand ge-upload";var sLangFileDeleted="Bestand verwijderd";var sLangFileNotdeleted="Bestand kon niet worden verwijderd";var sLangFileNotselected="Er is geen bestand geselecteerd";var sLangFileExistsrenamed="Het bestand bestaat al, het is hernoemd met een nr.";var sLangFileRenamed="Bestand hernoemd";var sLangPreviewPart="Toont de eerste #1 bytes";var sLangPreviewText="- text laden -";var sLangNewvideofile="Nieuwe video";var sLangNewpressfile="Nieuw pers bericht";var sLangClickaddfile="Klik om een bestand toe te voegen";var sLangGetfirefox="Alles werkt, maar het ziet er altijd beter uit in <a href=\"http://www.getfirefox.com/\">Firefox</a>.";var sLangChanges="Er zijn aanpassingen gedaan, vergeet niet te saven.";var sLangNochanges="Er zijn geen veranderingen.";var sLangSaving="Bezig op te slaan...";var sLangDeletevideo="Verwijder video";var sLangDeletepress="Verwijder pers bericht";var sLangMoveup="Omhoog";var sLangMovedown="Omlaag";var sLangConfirmDelete="Verwijder dit item?";var sLangSavesucces="Opslaan gelukt";var sLangUploadNotallowed="Dit bestand is '#1', het moet echter een van de volgende extensies hebben: #2, maar geen van deze: #3.";
+// author: Ron Valstar
+$.sfbrowser.defaults.lang =	{
+	 sfb:					"SFBrowser"
+
+	// single or small words
+	,ok:					"Ok"
+	,cancel:				"Annuleren"
+	,reset:					"Reset"
+	,select:				"Selecteer"
+	,choose:				"Kies"
+	,del:					"Verwijder"
+	,view:					"Toon"
+	,deselect:				"Deselecteer"
+	,close:					"Sluit"
+	,reload:				"Herladen"
+	,upload:				"Uploaden"
+	,changed:				"aangepast"
+
+	,show:					"Toon"
+	,load:					"Laad"
+	,save:					"Opslaan"
+	,saveas:				"Opslaan als"
+	,loading:				"Laden"
+	,rename:				"Hernoem"
+
+	,folder:				"Map"
+	,newfolder:				"Nieuwe map"
+
+	,file:					"Bestand"
+	,type:					"Type"
+	,name:					"Naam"
+	,size:					"Grootte"
+	,filetype:				"Bestandstype"
+	,filename:				"Bestandsnaam"
+	,filesize:				"Bestandsgrootte"
+	,date:					"Datum"
+	,dimensions:			"Verhoudingen"
+	,title:					"Titel"
+	,thumbnail:				"Thumbnail"
+
+	,resize:				"Resize"
+	,scale:					"Scale"
+	,width:					"Width"
+	,height:				"Height"
+	,dragMe:				"Drag me"
+	,duplicate:				"Duplicate"
+	
+	// files
+	,fileUploaded:			"Bestand ge-upload"
+	,fileDeleted:			"Bestand verwijderd"
+	,fileNotdeleted:		"Bestand kon niet worden verwijderd"
+	,fileNotselected:		"Er is geen bestand geselecteerd"
+	,fileExistsrenamed:		"Het bestand bestaat al, het is hernoemd met een nr."
+	,fileRenamed:			"Bestand hernoemd"
+
+	,fileDuplicated:		"Duplicatie gelukt"
+	,fileNotduplicated:		"Duplicatie niet gelukt"
+
+	,imgResize:				"Verschaal afbeelding"
+	,imgResized:			"Afbeelding verschaalt"
+	,imgNotresized:			"Verschalen mislukt"
+
+	// folders
+	,folderCreated:			"Map aangemaakt"
+	,folderFailed:			"Aanmaken map mislukt"
+	,folderDeleted:			"Map verwijdert"
+	,folderNotdeleted:		"De map kon niet worden verwijdert omdat de map niet leeg is."
+	,confirmDelete:			"Verwijder dit bestand?"
+	,confirmDeletef:		"Verwijder deze map?"
+
+	// filenames
+	,filenameInvalid:		"Dit is geen goede bestandsnaam."
+	,filenameNoext:			"Extensions mogen niet worden verandert."
+	,filenameNochange:		"Geen veranderingen."
+	,filenameNothing:		"Je kan niet iets naar niets hernoemen."
+	,filenameSucces:		"Hernoemen gelukt."
+	,filenameFailed:		"Hernoemen mislukt."
+	,filenameExists:		"De bestandsnaam bestaat al."
+
+	// upload
+	,uploadErr:				"No error code available"
+	,uploadErr1:			"The uploaded file exceeds the upload_max_filesize directive in php.ini"
+	,uploadErr2:			"The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form"
+	,uploadErr3:			"The uploaded file was only partially uploaded"
+	,uploadErr4:			"No file was uploaded."
+	,uploadErr6:			"Missing a temporary folder"
+	,uploadErr7:			"Failed to write file to disk"
+	,uploadErr8:			"File upload stopped by extension"
+	,uploadNotallowed:		"Het bestandstype '#1' is niet toegestaan."
+
+	// misc
+	,previewPart:			"Toont de eerste #1 bytes"
+	,previewText:			"- text laden -"
+	,getfirefox:			"Alles werkt, maar het ziet er altijd beter uit in <a href=\"http://www.getfirefox.com/\">Firefox</a>."
+	,contentsSucces:		"Inhoud opgehaald."
+}

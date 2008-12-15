@@ -1,7 +1,7 @@
 /*
 * jQuery SFBrowser
 *
-* Version: 2.5.2
+* Version: 2.5.3
 *
 * Copyright (c) 2008 Ron Valstar http://www.sjeiti.com/
 *
@@ -55,6 +55,7 @@
 *	- add: image preview: no-scaling on smaller images
 *	- add: multiple selection with shift (?)
 *	- add: make text selection in table into multiple file selection
+*	- add: make "j-n-Y H:i" for files variable
 *   - new: make preview an option
 *   - new: general filetype filter
 *   - new: folder information such as number of files
@@ -62,6 +63,7 @@
 *   - new: add mime instead of extension (for mac)
 *	- add: show zip and rar file contents in preview
 *	- add: drag and drop files to folders
+*	- new: folder treeview
 *   - new: create ascii file
 *   - new: edit ascii file
 *   - maybe: drag sfbrowser
@@ -69,8 +71,7 @@
 *	- maybe: thumbnail view
 *
 * in this update:
-*	- fixed: json error that got IE stuck
-*	- fixed: better return path
+*	- added: new structure for language connectors other than php
 *
 */
 ;(function($) {
@@ -94,15 +95,12 @@
 	// default settings
 	$.sfbrowser = {
 		 id: "SFBrowser"
-		,version: "2.5.2"
+		,version: "2.5.3"
 		,defaults: {
 			 title:		""						// the title
-			,sfbpath:	"sfbrowser/"			// path of sfbrowser (relative to the page it is run from)
-			,base:		"data/"					// upload folder (relative to sfbpath)
 			,folder:	""						// subfolder (relative to base), all returned files are relative to base
 			,dirs:		true					// allow visibility and creation/deletion of subdirectories
 			,upload:	true					// allow upload of files
-			,deny:		[]						// not allowed file extensions
 			,allow:		[]						// allowed file extensions
 			,resize:	null					// resize images: array(width,height) or null
 			,select:	function(a){trace(a)}	// calback function on choose
@@ -111,18 +109,30 @@
 			// basic control (normally no need to change)
 			,img:		["gif","jpg","jpeg","png"]
 			,ascii:		["txt","xml","html","htm","eml","ffcmd","js","as","php","css","java","cpp","pl","log"]
+			// set from init 
+			,sfbpath:	"sfbrowser/"			// path of sfbrowser (relative to the page it is run from)
+			,base:		"data/"					// upload folder (relative to sfbpath)
+			,deny:		[]						// not allowed file extensions
+			,icons:		[]						// list of existing file icons
+			,preview:	600						// amount of bytes for ascii preview
+			,connector:	"php"					// connector file type (php)
+			,lang:		{}						// language object
 		}
 	};
 	$.fn.extend({
 		sfbrowser: function(_settings) {
 			oSettings = $.extend({}, $.sfbrowser.defaults, _settings);
-			oSettings.deny = oSettings.deny.concat(sSfbDeny.split(","));
-			oSettings.php = oSettings.sfbpath+"sfbrowser.php";
+//			oSettings.deny = oSettings.deny.concat(sSfbDeny.split(","));
+			oSettings.conn = oSettings.sfbpath+"connectors/"+oSettings.connector+"/sfbrowser."+oSettings.connector;
 			oContents = {};
 			aSort = [];
 			bHasImgs = oSettings.allow.length===0||oSettings.img.copy().concat(oSettings.allow).unique().length<(oSettings.allow.length+oSettings.img.length);
 			aPath = [];
 			sFolder = oSettings.base+oSettings.folder;
+			//
+//			trace("$.sfbrowser.defaults.lang: "+$.sfbrowser.defaults.lang.sfb);
+//			trace("oSettings.lang: "+oSettings.lang);
+//			trace("oSettings.lang.sfb: "+oSettings.lang.sfb);
 			//
 			bOverlay = oSettings.inline=="body";
 			if (bOverlay) oSettings.fixed = false;
@@ -153,52 +163,52 @@
 			var sFBrowser = "<div id=\"sfbrowser\"><div id=\"fbbg\"></div>";
 			sFBrowser += "<div id=\"fbwin\">";
 			sFBrowser += "	<div class=\"sfbheader\">";
-			sFBrowser += "		<h3>"+(oSettings.title==""?sLangSfb:oSettings.title)+"</h3>";
-			sFBrowser += "		<div id=\"loadbar\"><div></div><span>"+sLangLoading+"</span></div>";
+			sFBrowser += "		<h3>"+(oSettings.title==""?oSettings.lang.sfb:oSettings.title)+"</h3>";
+			sFBrowser += "		<div id=\"loadbar\"><div></div><span>"+oSettings.lang.loading+"</span></div>";
 			sFBrowser += "		<ul id=\"sfbtopmenu\">";
-			if (oSettings.dirs) sFBrowser += "			<li><a class=\"textbutton newfolder\" title=\""+sLangNewfolder+"\"><span>"+sLangNewfolder+"</span></a></li>";
+			if (oSettings.dirs) sFBrowser += "			<li><a class=\"textbutton newfolder\" title=\""+oSettings.lang.newfolder+"\"><span>"+oSettings.lang.newfolder+"</span></a></li>";
 			if (oSettings.upload) {
 				sFBrowser += "			<li>";
 				sFBrowser += "				<form id=\"fileio\" name=\"form\" action=\"\" method=\"POST\" enctype=\"multipart/form-data\">";
 				sFBrowser += "					<input id=\"fileToUpload\" type=\"file\" size=\"1\" name=\"fileToUpload\" class=\"input\" />";
 				sFBrowser += "				</form>";
-				sFBrowser += "				<a class=\"textbutton upload\" title=\""+sLangUpload+"\"><span>"+sLangUpload+"</span></a>";
+				sFBrowser += "				<a class=\"textbutton upload\" title=\""+oSettings.lang.upload+"\"><span>"+oSettings.lang.upload+"</span></a>";
 				sFBrowser += "			</li>";
 			}
-			if (!oSettings.fixed) sFBrowser += "			<li><a class=\"button cancelfb\" title=\""+sLangCancel+"\">&nbsp;<span>"+sLangCancel+"</span></a></li>";
+			if (!oSettings.fixed) sFBrowser += "			<li><a class=\"button cancelfb\" title=\""+oSettings.lang.cancel+"\">&nbsp;<span>"+oSettings.lang.cancel+"</span></a></li>";
 			sFBrowser += "		</ul>";
 			sFBrowser += "	</div>";
 			sFBrowser += "	<div class=\"fbcontent\">";
 			sFBrowser += "		<div id=\"fbtable\"><table id=\"filesDetails\" cellpadding=\"0\" cellspacing=\"0\"><thead><tr>";
-			sFBrowser += "			<th>"+sLangName+"</th>";
-			sFBrowser += "			<th>"+sLangType+"</th>";
-			sFBrowser += "			<th>"+sLangSize+"</th>";
-			sFBrowser += "			<th>"+sLangDate+"</th>";
-			if (bHasImgs) sFBrowser += "		<th>"+sLangDimensions+"</th>";
+			sFBrowser += "			<th>"+oSettings.lang.name+"</th>";
+			sFBrowser += "			<th>"+oSettings.lang.type+"</th>";
+			sFBrowser += "			<th>"+oSettings.lang.size+"</th>";
+			sFBrowser += "			<th>"+oSettings.lang.date+"</th>";
+			if (bHasImgs) sFBrowser += "		<th>"+oSettings.lang.dimensions+"</th>";
 			sFBrowser += "			<th width=\"54\"></th>";
 			sFBrowser += "		</tr></thead><tbody><tr><td class=\"loading\" colspan=\""+(bHasImgs?6:5)+"\"></td></tr></tbody></table></div>";
 			sFBrowser += "		<div id=\"fbpreview\"></div>";
-			sFBrowser += "		<div class=\"button choose\">"+sLangChoose+"</div>";
-			if (!oSettings.fixed) sFBrowser += "		<div class=\"button cancelfb\">"+sLangCancel+"</div>";
+			sFBrowser += "		<div class=\"button choose\">"+oSettings.lang.choose+"</div>";
+			if (!oSettings.fixed) sFBrowser += "		<div class=\"button cancelfb\">"+oSettings.lang.cancel+"</div>";
 			sFBrowser += "		<div id=\"sfbfooter\">SFBrowser "+$.sfbrowser.version+" Copyright (c) 2008 <a href=\"http://www.sjeiti.com/\">Ron Valstar</a></div>";
 			sFBrowser += "	</div>";
 			sFBrowser += "</div>";
 			// image resizer
 			sFBrowser += "<div id=\"sfbimgresize\">";
 			sFBrowser += "	<div class=\"sfbheader\">";
-			sFBrowser += "		<h3>"+(oSettings.title==""?sLangSfb:oSettings.title)+": "+sLangImgResize+"</h3>";
+			sFBrowser += "		<h3>"+(oSettings.title==""?oSettings.lang.sfb:oSettings.title)+": "+oSettings.lang.imgResize+"</h3>";
 			sFBrowser += "	</div>";
 			sFBrowser += "	<div class=\"fbcontent\">";
-			sFBrowser += "		"+sLangScale+": <span id=\"rszperc\">asdf</span><br/>";
+			sFBrowser += "		"+oSettings.lang.scale+": <span id=\"rszperc\">asdf</span><br/>";
 			sFBrowser += "		<div id=\"sfbrsimg\">";
 			sFBrowser += "			<img src=\"\" />";
 			sFBrowser += "			<div id=\"crop\"></div>";
-			sFBrowser += "			<div id=\"sfbButRszBut\" title=\""+sLangDragMe+"\"></div>";
+			sFBrowser += "			<div id=\"sfbButRszBut\" title=\""+oSettings.lang.dragMe+"\"></div>";
 			sFBrowser += "		</div>";
 			sFBrowser += "		<form id=\"sfbsize\">";
-			sFBrowser += "			<h4>"+sLangResize+":</h4>";
-			sFBrowser += "			<label for=\"rszW\">"+sLangWidth+"</label>: <input type=\"text\" name=\"rszW\" /> px<br/>";
-			sFBrowser += "			<label for=\"rszH\">"+sLangHeight+"</label>: <input type=\"text\" name=\"rszH\" /> px<br/>";
+			sFBrowser += "			<h4>"+oSettings.lang.resize+":</h4>";
+			sFBrowser += "			<label for=\"rszW\">"+oSettings.lang.width+"</label>: <input type=\"text\" name=\"rszW\" /> px<br/>";
+			sFBrowser += "			<label for=\"rszH\">"+oSettings.lang.height+"</label>: <input type=\"text\" name=\"rszH\" /> px<br/>";
 			//sFBrowser += "			Crop:<br/>";
 			//sFBrowser += "			x: <input type=\"text\" name=\"crpX\" /> px<br/>";
 			//sFBrowser += "			y: <input type=\"text\" name=\"crpY\" /> px<br/>";
@@ -208,8 +218,8 @@
 			//sFBrowser += "			w: <span id=\"rsW\"></span> px<br/>";
 			//sFBrowser += "			h: <span id=\"rsH\"></span> px";
 			sFBrowser += "		</form>";
-			sFBrowser += "		<div class=\"button resize\">"+sLangResize+"</div>";
-			sFBrowser += "		<div class=\"button cancelresize\">"+sLangCancel+"</div>";
+			sFBrowser += "		<div class=\"button resize\">"+oSettings.lang.resize+"</div>";
+			sFBrowser += "		<div class=\"button cancelresize\">"+oSettings.lang.cancel+"</div>";
 			sFBrowser += "	</div>";
 			sFBrowser += "</div>";
 			sFBrowser += "</div>";
@@ -226,12 +236,12 @@
 
 			// context menu
 			var sFBcontext = "<ul id=\"sfbcontext\">";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton choose\" title=\""+sLangChoose+"\"><span>"+sLangChoose+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton rename\" title=\""+sLangRename+"\"><span>"+sLangRename+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton duplicate\" title=\""+sLangDuplicate+"\"><span>"+sLangDuplicate+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton resize\" title=\""+sLangImgResize+"\"><span>"+sLangImgResize+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton preview\" title=\""+sLangView+"\"><span>"+sLangView+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton filedelete\" title=\""+sLangDelete+"\"><span>"+sLangDelete+"</span></a></li>";
+			sFBcontext += "<li><a onclick=\"\" class=\"textbutton choose\" title=\""+oSettings.lang.choose+"\"><span>"+oSettings.lang.choose+"</span></a></li>";
+			sFBcontext += "<li><a onclick=\"\" class=\"textbutton rename\" title=\""+oSettings.lang.rename+"\"><span>"+oSettings.lang.rename+"</span></a></li>";
+			sFBcontext += "<li><a onclick=\"\" class=\"textbutton duplicate\" title=\""+oSettings.lang.duplicate+"\"><span>"+oSettings.lang.duplicate+"</span></a></li>";
+			sFBcontext += "<li><a onclick=\"\" class=\"textbutton resize\" title=\""+oSettings.lang.imgResize+"\"><span>"+oSettings.lang.imgResize+"</span></a></li>";
+			sFBcontext += "<li><a onclick=\"\" class=\"textbutton preview\" title=\""+oSettings.lang.view+"\"><span>"+oSettings.lang.view+"</span></a></li>";
+			sFBcontext += "<li><a onclick=\"\" class=\"textbutton filedelete\" title=\""+oSettings.lang.del+"\"><span>"+oSettings.lang.del+"</span></a></li>";
 			sFBcontext += "</ul>";
 			var mFBC = $(sFBcontext).appendTo("#sfbrowser");
 			mFBC.find("a.choose").click(function(){		chooseFile(); });
@@ -318,6 +328,7 @@
 	$(function() {
 		trace("SFBrowser init");
 	});
+	
 	// private functions
 	//
 	// open
@@ -370,20 +381,20 @@
 	}
 	// open directory
 	function openDir(dir) {
-		trace("sfb openDir "+dir+" to "+oSettings.php);
+		trace("sfb openDir "+dir+" to "+oSettings.conn);
 		if (dir) aPath.push(dir);
 		else aPath.pop();
-		$.ajax({type:"POST", url:oSettings.php, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:fillList});
+		$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:fillList});
 	}
 	// fill list
 	function fillList(data,status) {
 		trace("sfb fillList");
 		if (typeof(data.error)!="undefined") {
 			if (data.error!="") {
-				trace("sfb error: "+data.error);
-				alert(data.error);
+				trace("sfb error: "+lang(data.error));
+				alert(lang(data.error));
 			} else {
-				trace(data.msg);
+				trace(lang(data.msg));
 				$("#sfbrowser tbody").children().remove();
 				$("#fbpreview").html("");
 				oContents = {};
@@ -407,29 +418,29 @@
 		oContents[obj.file] = obj;
 		var bFolder = obj.mime=="folder";
 		var bUFolder = obj.mime=="folderup";
-		var sMime = bFolder||bUFolder?sLangFolder:obj.mime;
+		var sMime = bFolder||bUFolder?oSettings.lang.folder:obj.mime;
 		var sTr = "<tr id=\""+obj.file+"\" class=\""+(bFolder||bUFolder?"folder":"file")+"\">";
-		sTr += "<td abbr=\""+obj.file+"\" title=\""+obj.file+"\" class=\"icon\" style=\"background-image:url("+oSettings.sfbpath+"icons/"+(aIcons.indexOf(obj.mime)!=-1?obj.mime:"default")+".gif);\">"+(obj.file.length>20?obj.file.substr(0,15)+"(...)":obj.file)+"</td>";
+		sTr += "<td abbr=\""+obj.file+"\" title=\""+obj.file+"\" class=\"icon\" style=\"background-image:url("+oSettings.sfbpath+"icons/"+(oSettings.icons.indexOf(obj.mime)!=-1?obj.mime:"default")+".gif);\">"+(obj.file.length>20?obj.file.substr(0,15)+"(...)":obj.file)+"</td>";
 		sTr += "<td abbr=\""+obj.mime+"\">"+sMime+"</td>";
 		sTr += "<td abbr=\""+obj.rsize+"\">"+obj.size+"</td>";
 		sTr += "<td abbr=\""+obj.time+"\">"+obj.date+"</td>";
 		var bVImg = (obj.width*obj.height)>0;
 		sTr += (bHasImgs?("<td"+(bVImg?(" abbr=\""+(obj.width*obj.height)+"\""):"")+">"+(bVImg?(obj.width+" x "+obj.height+" px"):"")+"</td>"):"");
 		sTr += "<td>";
-		if (!(bFolder||bUFolder)) sTr += "	<a onclick=\"\" class=\"button preview\" title=\""+sLangView+"\">&nbsp;<span>"+sLangView+"</span></a>";
-		if (!bUFolder) sTr += "	<a onclick=\"\" class=\"button filedelete\" title=\""+sLangDelete+"\">&nbsp;<span>"+sLangDelete+"</span></a>";
+		if (!(bFolder||bUFolder)) sTr += "	<a onclick=\"\" class=\"button preview\" title=\""+oSettings.lang.view+"\">&nbsp;<span>"+oSettings.lang.view+"</span></a>";
+		if (!bUFolder) sTr += "	<a onclick=\"\" class=\"button filedelete\" title=\""+oSettings.lang.del+"\">&nbsp;<span>"+oSettings.lang.del+"</span></a>";
 		sTr += "</td>";
 		sTr += "</tr>";
 		var mTr = $(sTr).prependTo("#sfbrowser tbody");
 		mTr.find("a.filedelete").bind("click", function(el) {
-			if (confirm(bFolder?sLangConfirmDeletef:sLangConfirmDelete)) {
-				$.ajax({type:"POST", url:oSettings.php, data:"a=ka&folder="+aPath.join("")+"&file="+obj.file, dataType:"json", success:function(data, status){
+			if (confirm(bFolder?oSettings.lang.confirmDeletef:oSettings.lang.confirmDelete)) {
+				$.ajax({type:"POST", url:oSettings.conn, data:"a=ka&folder="+aPath.join("")+"&file="+obj.file, dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
 						if (data.error!="") {
-							trace(data.error);
-							alert(data.error);
+							trace(lang(data.error));
+							alert(lang(data.error));
 						} else {
-							trace(data.msg);
+							trace(lang(data.msg));
 							$("#fbpreview").html("");
 							delete oContents[obj.file];
 							mTr.remove();
@@ -483,7 +494,7 @@
 			return false;
 		};
 		mTr.find("a.preview").bind("click", function(el) {
-			window.open(oSettings.php+"?a=sui&file="+aPath.join("")+obj.file,"_blank");
+			window.open(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file,"_blank");
 		});
 		return mTr;
 	}
@@ -516,7 +527,7 @@
 		}
 		// return
 		if (aSelect.length==0) {
-			alert(sLangFileNotselected);
+			alert(oSettings.lang.fileNotselected);
 		} else {
 			// correct path
 			$.each(aSelect,function(i,oFile){oFile.file = sReturnPath+aPath.join("").replace(oSettings.base,"")+oFile.file;});
@@ -552,15 +563,15 @@
 		//
 		// preview ascii
 		} else if (oSettings.ascii.indexOf(oFile.mime)!=-1) {
-			$("#fbpreview").html(sLangPreviewText);
-			$.ajax({type:"POST", url:oSettings.php, data:"a=mizu&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
+			$("#fbpreview").html(oSettings.lang.previewText);
+			$.ajax({type:"POST", url:oSettings.conn, data:"a=mizu&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
 					if (data.error!="") {
-						trace("sfb error: "+data.error);
-						alert(data.error);
+						trace("sfb error: "+lang(data.error));
+						alert(lang(data.error));
 					} else {
-						trace(data.msg);
-						$("#fbpreview").html("<pre><div>"+sLangPreviewPart.replace("#1",iPreviewBytes)+"</div>\n"+data.data.text.replace(/\>/g,"&gt;").replace(/\</g,"&lt;")+"</pre>");
+						trace(lang(data.msg));
+						$("#fbpreview").html("<pre><div>"+oSettings.lang.previewPart.replace("#1",oSettings.preview)+"</div>\n"+data.data.text.replace(/\>/g,"&gt;").replace(/\</g,"&lt;")+"</pre>");
 					}
 				}
 			}});
@@ -575,13 +586,13 @@
 		var sFile = oFile.file;
 		//
 		trace("sfb Sending duplication request...");
-		$.ajax({type:"POST", url:oSettings.php, data:"a=kung&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
+		$.ajax({type:"POST", url:oSettings.conn, data:"a=kung&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
 			if (typeof(data.error)!="undefined") {
 				if (data.error!="") {
-					trace(data.error);
-					alert(data.error);
+					trace(lang(data.error));
+					alert(lang(data.error));
 				} else {
-					trace(data.msg);
+					trace(lang(data.msg));
 					listAdd(data.data).trigger('click');
 				}
 			}
@@ -626,7 +637,7 @@
 		//$("form#sfbsize>input[name=crpH]").val(iRH);
 		//$("form#sfbsize>span#rsW").text(iRW);
 		//$("form#sfbsize>span#rsH").text(iRH);
-		//$("#sfbimgresize>div.fbcontent").append(sLangResize+" "+fScaleW+" "+fScaleW);
+		//$("#sfbimgresize>div.fbcontent").append(oSettings.lang.resize+" "+fScaleW+" "+fScaleW);
 		//
 		// show resize window
 		$("#sfbimgresize").show();
@@ -672,11 +683,11 @@
 			trace("sfb Will not resize to same size."); // $$ alert something?
 		} else {
 			trace("sfb Sending resize request...");
-			$.ajax({type:"POST", url:oSettings.php, data:"a=bar&folder="+aPath.join("")+"&file="+sFile+"&w="+iW+"&h="+iH, dataType:"json", success:function(data, status){
+			$.ajax({type:"POST", url:oSettings.conn, data:"a=bar&folder="+aPath.join("")+"&file="+sFile+"&w="+iW+"&h="+iH, dataType:"json", success:function(data, status){
 				if (typeof(data.error)!="undefined") {
 					if (data.error!="") {
-						trace(data.error);
-						alert(data.error);
+						trace(lang(data.error));
+						alert(lang(data.error));
 					} else {
 						oFile.width  = iW;
 						oFile.height = iH;
@@ -709,13 +720,13 @@
 			if (sFile==sNFile) {
 				mInput.parent().html(sFile.length>20?sFile.substr(0,15)+"(...)":sFile);
 			} else {
-				$.ajax({type:"POST", url:oSettings.php, data:"a=ho&folder="+aPath.join("")+"&file="+sFile+"&nfile="+sNFile, dataType:"json", success:function(data, status){
+				$.ajax({type:"POST", url:oSettings.conn, data:"a=ho&folder="+aPath.join("")+"&file="+sFile+"&nfile="+sNFile, dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
 						if (data.error!="") {
-							trace(data.error);
-							alert(data.error);
+							trace(lang(data.error));
+							alert(lang(data.error));
 						} else {
-							trace(data.msg);
+							trace(lang(data.msg));
 							mTd.html(sNFile.length>20?sNFile.substr(0,15)+"(...)":sNFile).attr("title",sNFile).attr("abbr",sNFile);
 							oFile.file = sNFile;
 						}
@@ -728,13 +739,13 @@
 	// add folder
 	function addFolder() {
 		trace("sfb addFolder");
-		$.ajax({type:"POST", url:oSettings.php, data:"a=tsuchi&folder="+aPath.join(""), dataType:"json", success:function(data, status){
+		$.ajax({type:"POST", url:oSettings.conn, data:"a=tsuchi&folder="+aPath.join("")+"&foldername="+oSettings.lang.newfolder, dataType:"json", success:function(data, status){
 			if (typeof(data.error)!="undefined") {
 				if (data.error!="") {
-					trace(data.error);
-					alert(data.error);
+					trace(lang(data.error));
+					alert(lang(data.error));
 				} else {
-					trace(data.msg);
+					trace(lang(data.msg));
 					listAdd(data.data).trigger('click').trigger('click');
 					sortFbTable(); // todo: fix scrolltop below because because of
 					$("#sfbrowser #fbtable").scrollTop(0);	// IE and Safari
@@ -761,17 +772,17 @@
 		});
 
 		ajaxFileUpload({ // fu
-			url:			oSettings.php,
+			url:			oSettings.conn,
 			secureuri:		false,
 			fileElementId:	"fileToUpload",
 			dataType:		"json",
 			success: function (data, status) {
 				if (typeof(data.error)!="undefined") {
 					if (data.error!="") {
-						trace("sfb error: "+data.error);
-						alert(data.error);
+						trace("sfb error: "+lang(data.error));
+						alert(lang(data.error));
 					} else {
-						trace(data.msg);
+						trace(lang(data.msg));
 						listAdd(data.data).trigger('click');
 						sortFbTable(); // todo: fix scrolltop below because because of
 						$("#sfbrowser #fbtable").scrollTop(0);	// IE and Safari
@@ -785,6 +796,13 @@
 			}
 		});
 		return false;
+	}
+	// lang
+	function lang(s) {
+//		var aStr = s.split("#");
+//		sReturn = oSettings.lang[aStr[0]]?oSettings.lang[aStr[0]]:s;
+//		if (aStr.length>1) for (var i=1;i<aStr.length;i++) sReturn = sReturn.replace("#"+i,aStr[i]);
+		return s;//Return;
 	}
 	// is numeric
 	function isNum(n) {

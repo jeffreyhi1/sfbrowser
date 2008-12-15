@@ -9,7 +9,7 @@
 		<!--script type="text/javascript" src="http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js"></script-->
 
 		<script type="text/javascript" src="scripts/jquery-1.2.6.min.js"></script>
-		<?php include("sfbrowser/init.php"); ?>
+		<?php include("sfbrowser/connectors/php/init.php"); ?>
 
 		<script type="text/javascript">
 			<!--
@@ -70,14 +70,16 @@
 
 			<h2>installation</h2>
 
+			<p>SFBrowser can (theoretically) be connected to different server side languages. For sake of clarity this document will asume you're running PHP. Check the connectors paragraph if you want to use any other language.</p>
+
 			<ul>
-				<li>adjust 'sfbrowser/config.php' to your needs</li>
-				<li>include the 'sfbrowser/init.php' in the head of the html</li>
+				<li>adjust 'sfbrowser/connectors/php/config.php' to your needs</li>
+				<li>include the 'sfbrowser/connectors/php/init.php' in the head of the html</li>
 				<li>if not on localhost set the correct chmod of the upload folder and it's contents</li>
 			</ul>
 
 			<h3>configuration file</h3>
-			<p>The 'sfbrowser/config.php' file contains a few basic constants.</p>
+			<p>The 'sfbrowser/connectors/php/config.php' file contains a few basic constants.</p>
 			<table id="properties" cellpadding="0" cellspacing="0">
 				<thead><tr><th>property</th><th>type</th><th>description</th><th>default</th></tr></thead>
 				<tbody>
@@ -86,14 +88,12 @@
 					<tr><td>SFB_LANG</td>			<td>String</td>		<td>language ISO code</td><td>"en"</td></tr>
 					<tr><td>SFB_DENY</td>			<td>String</td>		<td>forbidden file extensions</td><td>"php,php3,phtml"</td></tr>
 					<tr><td>PREVIEW_BYTES</td>		<td>Integer</td>	<td>ASCII files can be previewed up to a certain amout of bytes.</td><td>600</td></tr>
-					<tr><td>SFB_ERROR_RETURN</td>	<td>String</td>		<td>return value....</td><td>"&lt;html&gt;&lt;head&gt;&lt;meta http-equiv="Refresh" content="0;URL=http:/" /&gt;&lt;/head&gt;&lt;/html&gt;"</td></tr>
+					<tr><td>SFB_ERROR_RETURN</td>	<td>String</td>		<td>return value in case of error</td><td>"&lt;html&gt;&lt;head&gt;&lt;meta http-equiv="Refresh" content="0;URL=http:/" /&gt;&lt;/head&gt;&lt;/html&gt;"</td></tr>
 				</tbody>
 			</table>
 
 			<h3>languages</h3>
-			<p>You can easily make SFBrowser into another language. Simply copy one of the existing language php files (sfbrowser/lang/en.php) and name them the <a href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements">ISO_3166 code</a> of that language (but in lowercase). Then edit the SFB_LANG constant in 'sfbrowser/config.php' to that ISO code.<br/>
-			If you are on a localhost PHP will automaticly write or update the language js files when SFBrowser is run in that language.<br/>
-			If you are not on a localhost it is best to upload an (empty) js file with the correct name and CHMOD them writable.<br/>
+			<p>You can easily make SFBrowser into another language. Simply copy one of the existing language js files (sfbrowser/lang/js.php) and name them the <a href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements">ISO_3166 code</a> of that language (but in lowercase). Then edit the SFB_LANG constant in 'sfbrowser/connectors/php/config.php' to that ISO code.<br/>
 			Should you make any language file other than the ones already present, I'd be happy to include them in a later release. Please send them to: sfbrowser at sjeiti dot com.</p>
 
 
@@ -195,7 +195,12 @@
 			<div id="inhere"></div>
 
 
-			<h2>a note of caution</h2>
+			<h2>connectors</h2>
+
+			<p>Lorem ipsum blaat.</p>
+
+
+			<h2>caution</h2>
 			<p>My initial intentions for this jQuery plugin were for use in a CMS, and those are normally password protected. I can imagine use of this plugin in applications that are not password protected. Of course I've tried to make these scripts as safe as possible but I'm not an expert in PHP and servers. So doublecheck the PHP yourself if you intend to use it on an unprotected part of your site (and use at your own risk of course).<br/>
 			Should you find any holes or anything that can be improved please mail me at: sfbrowser at sjeiti dot com.</p>
 		</div>

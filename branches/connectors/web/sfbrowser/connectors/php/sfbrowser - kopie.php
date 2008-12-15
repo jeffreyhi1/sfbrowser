@@ -1,17 +1,20 @@
 <?php
 /*
-* jQuery SFBrowser 2.5.2
+* jQuery SFBrowser 2.5.3
 * Copyright (c) 2008 Ron Valstar http://www.sjeiti.com/
 * Dual licensed under the MIT and GPL licenses:
 *   http://www.opensource.org/licenses/mit-license.php
 *   http://www.gnu.org/licenses/gpl.html
 */
+$sConnBse = "../../";
 if (!(isset($_POST["a"])||isset($_GET["a"]))) exit("ku");
 include("config.php");
 include("functions.php");
-include("lang/".SFB_LANG.".php");
-foreach ($aLang as $c=>$s) @define($c,$s);
+//include(getFilePath($sConnBse."lang/".SFB_LANG.".php"));
+//include("lang/".SFB_LANG.".php");
+//foreach ($aLang as $c=>$s) @define($c,$s);
 $sAction = isset($_POST["a"])?$_POST["a"]:$_GET["a"];
+//
 //
 $sData = "";
 $sErr = "";
@@ -35,7 +38,7 @@ if (isset($_POST["file"])) $sSFile = $_POST["file"];
 else if (isset($_GET["file"])) $sSFile = $_GET["file"];
 else if (isset($_FILES["fileToUpload"])) $sSFile = $_FILES["fileToUpload"]["name"];
 if ($sSFile!="") {
-	if (isset($_POST["folder"])) $sSFile = $_POST["folder"].$sSFile;
+	if (isset($_POST["folder"])) $sSFile = $sConnBse.$_POST["folder"].$sSFile;
 	if (strstr($sSFile,"sfbrowser")!==false||!preg_match('/[^:\*\?<>\|(\.\/)]+\/[^:\*\?<>\|(\.\/)]/',$sSFile)) exit(SFB_ERROR_RETURN);
 	// todo: maybe check SFB_DENY here as well
 }
@@ -91,7 +94,7 @@ switch ($sAction) {
 	case "chi": // retreive file list  $$$$$$todo: check SFB_DENY
 		if (count($_POST)!=2||!isset($_POST["folder"])) exit("ku chi");
 		$sImg = "";
-		$sDir = isset($_POST["folder"])?$_POST["folder"]:"data/";
+		$sDir = $sConnBse.(isset($_POST["folder"])?$_POST["folder"]:"data/");
 		$i = 0;
 		if ($handle = opendir($sDir)) while (false !== ($file = readdir($handle))) {
 			$oFNfo = fileInfo($sDir.$file);
@@ -194,8 +197,6 @@ switch ($sAction) {
 					if ($fRsz<1) {
 						$iNW = intval($iW*$fRsz);
 						$iNH = intval($iH*$fRsz);
-//						echo $iNW;
-//						echo $iNW;
 						$oImgN = imagecreatetruecolor($iNW,$iNH);
 						$oImg = imagecreatefromjpeg($sFileTo);
 						imagecopyresampled($oImgN,$oImg, 0,0, 0,0, $iNW,$iNH, $iW,$iH );
@@ -284,8 +285,8 @@ switch ($sAction) {
 	case "tsuchi":// add folder
 		if (isset($_POST["folder"]))  {
 			$iRpt = 1;
-			$sFolder = $_POST["folder"].LANG_NEWFOLDER;
-			while (file_exists($sFolder)) $sFolder = $_POST["folder"].LANG_NEWFOLDER.($iRpt++);
+			$sFolder = $sConnBse.$_POST["folder"].LANG_NEWFOLDER;
+			while (file_exists($sFolder)) $sFolder = $sConnBse.$_POST["folder"].LANG_NEWFOLDER.($iRpt++);
 			if (mkdir($sFolder)) {
 				$sMsg .= LANG_FOLDER_CREATED;
 				$oFNfo = fileInfo($sFolder);
@@ -298,5 +299,4 @@ switch ($sAction) {
 	break;
 }
 $sEcho = "{error: \"".$sErr."\", msg: \"".$sMsg."\", data: {".$sData."}}";
-//trace($sAction.": ".$sEcho);
 if ($sAction!="sui") echo $sEcho;
