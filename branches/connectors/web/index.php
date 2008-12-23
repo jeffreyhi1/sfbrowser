@@ -10,7 +10,6 @@
 
 		<script type="text/javascript" src="scripts/jquery-1.2.6.min.js"></script>
 		<?php include("sfbrowser/connectors/php/init.php"); ?>
-
 		<script type="text/javascript">
 			<!--
 			function addFiles(aFiles) {
@@ -33,9 +32,9 @@
 					$(this).attr("id",$(this).text());
 				});
 			});
-			//$(window).load(function() {
-			//	$.fn.sfbrowser();
-			//});
+//			$(window).load(function() {
+//				$.fn.sfbrowser();
+//			});
 			-->
 		</script>
 	</head>
@@ -48,29 +47,35 @@
 			You can use it, like any open-file-dialog, to select one or more files. Most inherent functionalities are also there like: file upload, file preview, creating folders and renaming or deleting files and folders.<br/>
 			You can download SFBrowser at <a href="http://plugins.jquery.com/project/SFBrowser">http://plugins.jquery.com/project/SFBrowser</a>. This is also the place where you can report bugs or request new features.</p>
 
+			<h3>caution</h3>
+			<p>The initial intentions for this jQuery plugin were for use in a CMS, and those are normally password protected. If you intend to use this plugin in an unprotected part of your site make sure to doublecheck and test (hack) the server side scripts yourself. You are using this plugin at your own risk.<br/>
+			Should you find holes, leaks or anything else that can be improved you can mail them to: sfbrowser at sjeiti dot com.</p>
+
 			<h2>features</h2>
 
 			<ul>
 				<li>ajax file upload</li>
 				<li>localisation (English, Dutch or Spanish)</li>
+				<li>server side script connector</li>
+				<li>plugin environment</li>
+				<li>image resize/cropping plugin</li>
 				<li>sortable file table</li>
 				<li>file filtering</li>
 				<li>file renaming</li>
 				<li>file duplication</li>
 				<li>file download</li>
 				<li>file/folder context menu</li>
+				<li>file preview (image and text/ascii)</li>
 				<li>folder creation</li>
-				<li>image resize</li>
-				<li>image preview</li>
-				<li>text/ascii preview</li>
 				<li>multiple files selection (not in IE for now)</li>
-				<li>inline or overlay browsing</li>
+				<li>inline or overlay window</li>
+				<li>window resizing</li>
 			</ul>
 
 
 			<h2>installation</h2>
 
-			<p>SFBrowser can (theoretically) be connected to different server side languages. For sake of clarity this document will asume you're running PHP. Check the connectors paragraph if you want to use any other language.</p>
+			<p>SFBrowser can (theoretically) be connected to different server side languages. For sake of clarity this document will asume you're running PHP. Check the connectors paragraph if you want to use any other server side script.</p>
 
 			<ul>
 				<li>adjust 'sfbrowser/connectors/php/config.php' to your needs</li>
@@ -92,12 +97,12 @@
 				</tbody>
 			</table>
 
-			<h3>languages</h3>
-			<p>You can easily make SFBrowser into another language. Simply copy one of the existing language js files (sfbrowser/lang/js.php) and name them the <a href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements">ISO_3166 code</a> of that language (but in lowercase). Then edit the SFB_LANG constant in 'sfbrowser/connectors/php/config.php' to that ISO code.<br/>
+			<h3>localisation</h3>
+			<p>You can easily make SFBrowser into another language. Simply copy one of the existing language js files (sfbrowser/lang/[iso].js and sfbrowser/plugins/[name]/lang/[iso].js) and name them the <a href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements">ISO_3166 code</a> of the new language (in lowercase). Then edit the SFB_LANG constant in 'sfbrowser/connectors/php/config.php' to that ISO code.<br/>
 			Should you make any language file other than the ones already present, I'd be happy to include them in a later release. Please send them to: sfbrowser at sjeiti dot com.</p>
 
 
-			<h2>javascript</h2>
+			<h3>javascript</h3>
 
 			<p>You can call up SFBrowser by '$.fn.sfbrowser();' or the shorter '$.sfb();'</p>
 			<p>SFBrowser has a number of properties you can parse:</p>
@@ -106,21 +111,29 @@
 				<tbody>
 					<tr><td>title</td>	<td>String</td>		<td>title of the SFBrowser window</td><td>"SFBrowser"</td></tr>
 					<tr><td>select</td>	<td>Function</td>	<td>calback function on choose</td><td>function(a){trace(a)}</td></tr>
-					<tr><td>sfbpath</td><td>String</td>		<td>the path of sfbrowser (relative to the page it is run from)</td><td>"sfbrowser/"</td></tr>
-					<tr><td>base</td>	<td>String</td>		<td>the upload folder (relative to sfbpath).</td><td>"data/"</td></tr>
 					<tr><td>folder</td>	<td>String</td>		<td>a subfolder (relative to base, to which all returned files are relative)</td><td>""</td></tr>
 					<tr><td>dirs</td>	<td>Boolean</td>	<td>allow visibility and creation/deletion of subdirectories.</td><td>true</td></tr>
 					<tr><td>upload</td>	<td>Boolean</td>	<td>allow upload of files</td><td>true</td></tr>
-					<tr><td>deny</td>	<td>Array&lt;String&gt;</td>		<td>denied file extensions</td><td>["php", "php3", "phtml"]</td></tr>
 					<tr><td>allow</td>	<td>Array&lt;String&gt;</td>		<td>allowed file extensions</td><td>[]</td></tr>
 					<tr><td>resize</td>	<td>Array&lt;Integer&gt;</td>		<td>maximum image constraint: array(width,height) or null</td><td>null</td></tr>
-					<tr><td>img</td>	<td>Array&lt;String&gt;</td>		<td>image file extensions for preview</td><td>["gif", "jpg", "jpeg", "png"]</td></tr>
-					<tr><td>ascii</td>	<td>Array&lt;String&gt;</td>		<td>text file extensions for preview</td><td>["txt", "xml", "html", "htm", "eml", "ffcmd", "js", "as", "php", "css", "java", "cpp", "pl", "log"]</td></tr>
 					<tr><td>inline</td>	<td>String</td>		<td>a JQuery selector for inline browser</td><td>"body"</td></tr>
 					<tr><td>fixed</td>	<td>Boolean</td>	<td>keep the browser open after selection (only works when inline is not "body")</td><td>false</td></tr>
+				
+					<tr><th colspan="4">the following properties normally need no change</th></tr>
+					<tr><td>img</td>	<td>Array&lt;String&gt;</td>		<td>image file extensions for preview</td><td>["gif", "jpg", "jpeg", "png"]</td></tr>
+					<tr><td>ascii</td>	<td>Array&lt;String&gt;</td>		<td>text file extensions for preview</td><td>["txt", "xml", "html", "htm", "eml", "ffcmd", "js", "as", "php", "css", "java", "cpp", "pl", "log"]</td></tr>
+					
+					<tr><th colspan="4">The following properties are set automaticly from the init file, explicitly setting these from js can lead to unexpected results.</th></tr>
+					<tr><td>sfbpath</td><td>String</td>		<td>the path of sfbrowser</td><td>"sfbrowser/"</td></tr>
+					<tr><td>base</td>	<td>String</td>		<td>the upload folder</td><td>"data/"</td></tr>
+					<tr><td>deny</td>	<td>Array&lt;String&gt;</td>		<td>denied file extensions</td><td>["php", "php3", "phtml"]</td></tr>
+					<tr><td>icons</td>	<td>Array&lt;String&gt;</td>		<td>list of existing file icons</td><td>["jpg", "html", "ico"...(etc)]</td></tr>
+					<tr><td>preview</td><td>Integer</td>		<td>amount of bytes for ascii preview</td><td>600</td></tr>
+					<tr><td>connector</td><td>String</td>		<td>server side script type</td><td>"php"</td></tr>
+					<tr><td>lang</td><td>Object</td>		<td>language object</td><td>see lang/en.js</td></tr>
+					
 				</tbody>
 			</table>
-			<p>The two properties <span class="property">sfbpath</span> and <span class="property">base</span> are always set automaticly in the 'init.php' from the corresponding values in 'config.php'. The only time you have to set these are when you call SFBrowser from different directories or when you have different upload directories (that do not share a common upload parent directory).</p>
 
 			<h3>select</h3>
 			<p>The <span class="property">select</span> property is something you will want to set if you want SFBrowser to be usefull. It's value has to be a function with one parameter: an array containing objects for the selected files (for instance: function(a){alert(a)};). Each object in that array has the following properties (where applicable):</p>
@@ -195,14 +208,206 @@
 			<div id="inhere"></div>
 
 
-			<h2>connectors</h2>
+			<h2>plugins</h2>
 
 			<p>Lorem ipsum blaat.</p>
 
 
-			<h2>caution</h2>
-			<p>My initial intentions for this jQuery plugin were for use in a CMS, and those are normally password protected. I can imagine use of this plugin in applications that are not password protected. Of course I've tried to make these scripts as safe as possible but I'm not an expert in PHP and servers. So doublecheck the PHP yourself if you intend to use it on an unprotected part of your site (and use at your own risk of course).<br/>
-			Should you find any holes or anything that can be improved please mail me at: sfbrowser at sjeiti dot com.</p>
+			<h2>connectors</h2>
+
+			<p>A connector folder should at least have the following files.</p>
+			<ul>
+				<li>sfbrowser/connectors/[type]/config.[type]</li>
+				<li>sfbrowser/connectors/[type]/init.[type]</li>
+				<li>sfbrowser/connectors/[type]/sfbrowser.[type]</li>
+			</ul>
+
+			<h3>config file</h3>
+			<p>The config file should at least have the following settings:</p>
+			<ul>
+				<li>path of sfbrowser</li>
+				<li>the base upload folder</li>
+				<li>the language ISO code</li>
+				<li>ASCII preview ammount</li>
+				<li>a list of forbidden file extensions</li>
+				<li>an error return code (for severe misuse)</li>
+			</ul>
+			<p>The config file is used in both the init file (to parse to sfbrowser js) and in the actual sfbrowser file (which does the actual server side thinking).</p>
+
+			<h3>init file</h3>
+			<p>The init file must be called in the html documents header in order to write these lines:</p>
+			<pre>&lt;link rel="stylesheet" type="text/css" media="screen" href="sfbrowser/css/sfbrowser.css" /&gt;
+&lt;script type="text/javascript" src="sfbrowser/array.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="sfbrowser/jquery.tinysort.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="sfbrowser/jquery.sfbrowser.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="sfbrowser/lang/en.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;
+	&lt;!--
+	$.sfbrowser.defaults.connector = "php";
+	$.sfbrowser.defaults.sfbpath = "sfbrowser/";
+	$.sfbrowser.defaults.base = "../data/";
+	$.sfbrowser.defaults.preview = 600;
+	$.sfbrowser.defaults.deny = ["php","php3","phtml"];
+	$.sfbrowser.defaults.icons = ['ai','as','avi','bmp','cs','default',(...)];
+	--&gt;
+&lt;/script&gt;</pre>
+			<p>As you might have noticed, most of these lines are formed to what is set in the config file. The icons variable is a folder readout from the sfbrowser/icons/ folder.</p>
+			
+			<h3>sfbrowser file</h3>
+			<p>The sfbrowser file is the actual connector to the SFBrowser plugin. Mostly it will require some POST variables and a JSON output object.<br/>
+			A POST will always contain a variable "a" that will determine the action to be taken.</p>
+			<p>For all actions counts: make absolutely sure that the incoming data corresponds with that set in the config file!</p>
+			<ul>
+				<li>Do not upload forbidden filetypes.</li>
+				<li>Only upload, rename, create, view, change and delete within base upload path.</li>
+				<li>Rename files, but not the file extension.</li>
+				<li>Do not return, force download or preview forbidden filetypes.</li>
+			</ul>
+			<p>Mostly, a POST (or GET in case of force download) will contain the variable "folder" and the variable "file". Check both of these against the base upload folder set in the config. If it's outside, somebody is probably screwing around.<br/>
+			Just to be sure, check the number of _GET, _POST and _FILES variables. A _POST["a"] can only get a certain ammount of each, if these differ, something fishy might be going on.<br/>
+			If suspicious action occurs you can redirect them to the return error code set in the config file in order to block acces or whatever you'd like to do(??haven't really figured out how to go from there, consider it a loose stub??).</p>
+			<p>A number of the JSON outputs contain file descriptions. In the description of the types of actions the file object is referred to as &lt;FileObject&gt;. It looks like this:</p>
+			<pre>JSON FileObject: {
+	 file:		&lt;String&gt;	file name
+	,mime:		&lt;String&gt;	file extention
+	,rsize:		&lt;uint&gt;		file size in bytes
+	,size:		&lt;String&gt;	file size in kB, MB or whatever
+	,time:		&lt;uint&gt;		time in Unix Epoch
+	,date:		&lt;String&gt;	time in "j-n-Y H:i"
+	,width:		&lt;uint&gt;		image width in pixels
+	,height:	&lt;uint&gt;		image height in pixels
+}</pre>
+			<p>The following are the possible values for _POST["a"]: the possible actions that can be taken and the required return values.</p>
+
+			<h3>_POST["a"]=="chi" :: retreive file list</h3>
+			<pre>input:
+	_POST["folder"] &lt;String&gt;	path to folder
+action:
+	Read the contents of a folder
+	Filter out the forbidden file types
+	If applicable, filter for allowed file types
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+	,data:		&lt;Object&gt;	object containing &lt;FileObject&gt;'s
+}
+example: {
+	error:	"",
+	msg:	"fileListing",
+	data: {
+		a: &lt;FileObject&gt;,
+		b: &lt;FileObject&gt;,
+		c: &lt;FileObject&gt;,
+		...
+	}
+}</pre>
+
+			<h3>_POST["a"]=="fu" :: file upload</h3>
+			<pre>input:
+	_FILES["fileToUpload"]	&lt;Object&gt;	file object
+	_POST["file"]		&lt;String&gt;	path to folder
+	_POST["deny"]		&lt;String&gt;	pipe separated string of denied file extensions ("php|tpl|log")
+	_POST["allow"]		&lt;String&gt;	pipe separated string of allowed file extensions ("gif|jpg|jpeg|png")
+	_POST["resize"]		&lt;Array&gt;		resize image to [width,heigth]
+	
+action:
+	Check for _FILES["fileToUpload"]["error"]
+	Check _FILES["fileToUpload"]["tmp_name"] for actual upload
+	Check forbidden filetypes
+	Check allowed filetypes
+	Check upload folder for similarly named file
+	Move file to upload folder
+	If applicable, resize image
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+	,data:		&lt;FileObject&gt;	uploaded file
+}</pre>
+
+			<h3>_POST["a"]=="kung" :: duplicate file</h3>
+			<pre>input:
+	_POST["file"]	&lt;String&gt;	file name
+	_POST["folder"]	&lt;String&gt;	file folder
+action:
+	Create new non-existing file name
+	Duplicate file to that name
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+	,data:		&lt;FileObject&gt;	duplicated file
+}</pre>
+
+			<h3>_POST["a"]=="ka" :: file delete</h3>
+			<pre>input:
+	_POST["file"]	&lt;String&gt;	file name
+	_POST["folder"]	&lt;String&gt;	file folder
+action:
+	delete file
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+}</pre>
+
+			<h3>_POST["a"]=="sui" :: file force download</h3>
+			<pre>input:
+	_POST["file"]	&lt;String&gt;	file name
+	_POST["folder"]	&lt;String&gt;	file folder
+action:
+	Force file download
+output: nothing</pre>
+
+			<h3>_POST["a"]=="mizu" :: read txt file contents</h3>
+			<pre>input:
+	_POST["file"]	&lt;String&gt;	file name
+	_POST["folder"]	&lt;String&gt;	file folder
+action:
+	Read and return file contents
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+	,data: {
+		text:	&lt;String&gt;	first x amount of bytes from ascii file
+	}
+}</pre>
+
+			<h3>_POST["a"]=="ho" :: rename file</h3>
+			<pre>input:
+	_POST["file"]	&lt;String&gt;	original file name
+	_POST["folder"]	&lt;String&gt;	file folder
+	_POST["nfile"]	&lt;String&gt;	new file name
+action:
+	Check if new file name is valid
+	Rename file
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+}</pre>
+
+			<h3>_POST["a"]=="tsuchi" :: add folder</h3>
+			<pre>input:
+	_POST["folder"]		&lt;String&gt;	folder to create new folder into
+	_POST["foldername"]	&lt;String&gt;	new folder name
+action:
+	Create new folder
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+	,data:		&lt;FileObject&gt;	newly created folder
+}</pre>
+
+			<h3>_POST["a"]=="bar" :: image resize (in imageresize plugin)</h3>
+			<pre>input:
+	_POST["file"]	&lt;String&gt;	file name
+	_POST["folder"]	&lt;String&gt;	file folder
+	_POST["w"]	&lt;uint&gt;		new width
+	_POST["h"]	&lt;uint&gt;		new height
+action:
+	Resize image
+output: JSON {
+	 error:		&lt;String&gt;	error message (see lang.js)
+	,msg:		&lt;String&gt;	succes message (see lang.js)
+}</pre>
+
 		</div>
 		<div id="footer"> 
 			<div>© 2008 <a href="http://www.sjeiti.com/">Ron Valstar</a></div>

@@ -1,7 +1,7 @@
 /*
 * jQuery SFBrowser
 *
-* Version: 2.5.3
+* Version: 2.5.4
 *
 * Copyright (c) 2008 Ron Valstar http://www.sjeiti.com/
 *
@@ -14,27 +14,29 @@
 *
 * requires
 *   - jQuery 1.2+
-*   - PHP5
+*   - PHP5 (or any other server side script if you care to write the connectors)
 *
 * features
 *   - ajax file upload
 *   - localisation (English, Dutch or Spanish)
+*	- server side script connector
+*	- plugin environment
+*	- image resize/cropping plugin
 *   - sortable file table
 *   - file filtering
 *   - file renameing
 *   - file duplication
 *   - file download
 *   - file/folder context menu
+*   - file preview (image and text/ascii)
 *	- folder creation
-*   - image resizing
-*   - image preview
-*   - text/ascii preview
 *   - multiple files selection (not in IE for now)
-*	- inline or overlay browsing
+*	- inline or overlay window
+*	- window resizing
 *
 * how it works
-*   - sfbrowser now returns a list of objects rather than a list of filenames.
-*	  An object contains:
+*   - sfbrowser returns a list of file objects.
+*	  A file object contains:
 *		 - file(String):		The file including its path
 *		 - mime(String):		The filetype
 *		 - rsize(int):			The size in bytes
@@ -49,29 +51,34 @@
 *	- Spanish translation: Juan Razeto
 *
 * todo:
+*	- add: view option: new or custom css files
 *	- code: check what timeout code in upload code really does
-*	- FF: find way to disable table cell highlighting view (just the border)
-*	- IE: multiple selection does not work in IE (must be CTRL)
 *	- add: image preview: no-scaling on smaller images
-*	- add: multiple selection with shift (?)
 *	- add: make text selection in table into multiple file selection
 *	- add: make "j-n-Y H:i" for files variable
 *   - new: make preview an option
 *   - new: general filetype filter
 *   - new: folder information such as number of files
 *   - IE: fix IE and Safari scrolling (table header moves probably thanks to absolute positioning of parents)
+*	- IE: fix multiple file selection
+*	- FF: multiple file selection: disable table cell highlighting (border)
 *   - new: add mime instead of extension (for mac)
 *	- add: show zip and rar file contents in preview
 *	- add: drag and drop files to folders
-*	- new: folder treeview
+*	- new: folder treeview (plugin)
 *   - new: create ascii file
-*   - new: edit ascii file
+*   - new: edit ascii file (plugin)
 *   - maybe: drag sfbrowser
 *   - maybe: copy used functions (copy, unique and indexof) from array.js
 *	- maybe: thumbnail view
 *
 * in this update:
-*	- added: new structure for language connectors other than php
+*	- added: server side script connectors (localisation is now js only)
+*	- added: interface for plugins
+*	- added: image resize/cropping plugin
+*	- changed: php security
+*	- changed: cleaned up some of code
+*	- added: loading feedback for folder opening
 *
 */
 ;(function($) {
@@ -88,9 +95,7 @@
 	var sFolder;
 	var sReturnPath;
 	//
-	// resize
-	var fRzsScale;
-	var fRzsAspR;
+	var mTrLoading;
 	//
 	// default settings
 	$.sfbrowser = {
@@ -98,18 +103,18 @@
 		,version: "2.5.3"
 		,defaults: {
 			 title:		""						// the title
+			,select:	function(a){trace(a)}	// calback function on choose
 			,folder:	""						// subfolder (relative to base), all returned files are relative to base
 			,dirs:		true					// allow visibility and creation/deletion of subdirectories
 			,upload:	true					// allow upload of files
 			,allow:		[]						// allowed file extensions
-			,resize:	null					// resize images: array(width,height) or null
-			,select:	function(a){trace(a)}	// calback function on choose
+			,resize:	null					// resize images after upload: array(width,height) or null
 			,inline:	"body"					// a JQuery selector for inline browser
 			,fixed:		false					// keep the browser open after selection (only works when inline is not "body")
 			// basic control (normally no need to change)
 			,img:		["gif","jpg","jpeg","png"]
 			,ascii:		["txt","xml","html","htm","eml","ffcmd","js","as","php","css","java","cpp","pl","log"]
-			// set from init 
+			// set from init, explicitly setting these from js can lead to unexpected results.
 			,sfbpath:	"sfbrowser/"			// path of sfbrowser (relative to the page it is run from)
 			,base:		"data/"					// upload folder (relative to sfbpath)
 			,deny:		[]						// not allowed file extensions
@@ -118,21 +123,30 @@
 			,connector:	"php"					// connector file type (php)
 			,lang:		{}						// language object
 		}
+		,addLang: function(oLang) {
+			for (var sId in oLang) $.sfbrowser.defaults.lang[sId] = oLang[sId];
+		}
 	};
+	// init
+	$(function() {
+		trace("SFBrowser init");
+	});
+	// call
 	$.fn.extend({
 		sfbrowser: function(_settings) {
 			oSettings = $.extend({}, $.sfbrowser.defaults, _settings);
-//			oSettings.deny = oSettings.deny.concat(sSfbDeny.split(","));
 			oSettings.conn = oSettings.sfbpath+"connectors/"+oSettings.connector+"/sfbrowser."+oSettings.connector;
-			oContents = {};
+			//oContents = {};
 			aSort = [];
 			bHasImgs = oSettings.allow.length===0||oSettings.img.copy().concat(oSettings.allow).unique().length<(oSettings.allow.length+oSettings.img.length);
 			aPath = [];
 			sFolder = oSettings.base+oSettings.folder;
 			//
+			//
 //			trace("$.sfbrowser.defaults.lang: "+$.sfbrowser.defaults.lang.sfb);
 //			trace("oSettings.lang: "+oSettings.lang);
 //			trace("oSettings.lang.sfb: "+oSettings.lang.sfb);
+			//
 			//
 			bOverlay = oSettings.inline=="body";
 			if (bOverlay) oSettings.fixed = false;
@@ -160,101 +174,47 @@
 			sReturnPath = (aFxSfbpath.join("/")+"//"+aFxBase.join("/")).replace(/(\/+)/,"/").replace(/(^\/+)/,"");
 			//
 			// file browser
-			var sFBrowser = "<div id=\"sfbrowser\"><div id=\"fbbg\"></div>";
-			sFBrowser += "<div id=\"fbwin\">";
-			sFBrowser += "	<div class=\"sfbheader\">";
-			sFBrowser += "		<h3>"+(oSettings.title==""?oSettings.lang.sfb:oSettings.title)+"</h3>";
-			sFBrowser += "		<div id=\"loadbar\"><div></div><span>"+oSettings.lang.loading+"</span></div>";
-			sFBrowser += "		<ul id=\"sfbtopmenu\">";
-			if (oSettings.dirs) sFBrowser += "			<li><a class=\"textbutton newfolder\" title=\""+oSettings.lang.newfolder+"\"><span>"+oSettings.lang.newfolder+"</span></a></li>";
-			if (oSettings.upload) {
-				sFBrowser += "			<li>";
-				sFBrowser += "				<form id=\"fileio\" name=\"form\" action=\"\" method=\"POST\" enctype=\"multipart/form-data\">";
-				sFBrowser += "					<input id=\"fileToUpload\" type=\"file\" size=\"1\" name=\"fileToUpload\" class=\"input\" />";
-				sFBrowser += "				</form>";
-				sFBrowser += "				<a class=\"textbutton upload\" title=\""+oSettings.lang.upload+"\"><span>"+oSettings.lang.upload+"</span></a>";
-				sFBrowser += "			</li>";
-			}
-			if (!oSettings.fixed) sFBrowser += "			<li><a class=\"button cancelfb\" title=\""+oSettings.lang.cancel+"\">&nbsp;<span>"+oSettings.lang.cancel+"</span></a></li>";
-			sFBrowser += "		</ul>";
-			sFBrowser += "	</div>";
-			sFBrowser += "	<div class=\"fbcontent\">";
-			sFBrowser += "		<div id=\"fbtable\"><table id=\"filesDetails\" cellpadding=\"0\" cellspacing=\"0\"><thead><tr>";
-			sFBrowser += "			<th>"+oSettings.lang.name+"</th>";
-			sFBrowser += "			<th>"+oSettings.lang.type+"</th>";
-			sFBrowser += "			<th>"+oSettings.lang.size+"</th>";
-			sFBrowser += "			<th>"+oSettings.lang.date+"</th>";
-			if (bHasImgs) sFBrowser += "		<th>"+oSettings.lang.dimensions+"</th>";
-			sFBrowser += "			<th width=\"54\"></th>";
-			sFBrowser += "		</tr></thead><tbody><tr><td class=\"loading\" colspan=\""+(bHasImgs?6:5)+"\"></td></tr></tbody></table></div>";
-			sFBrowser += "		<div id=\"fbpreview\"></div>";
-			sFBrowser += "		<div class=\"button choose\">"+oSettings.lang.choose+"</div>";
-			if (!oSettings.fixed) sFBrowser += "		<div class=\"button cancelfb\">"+oSettings.lang.cancel+"</div>";
-			sFBrowser += "		<div id=\"sfbfooter\">SFBrowser "+$.sfbrowser.version+" Copyright (c) 2008 <a href=\"http://www.sjeiti.com/\">Ron Valstar</a></div>";
-			sFBrowser += "	</div>";
-			sFBrowser += "</div>";
-			// image resizer
-			sFBrowser += "<div id=\"sfbimgresize\">";
-			sFBrowser += "	<div class=\"sfbheader\">";
-			sFBrowser += "		<h3>"+(oSettings.title==""?oSettings.lang.sfb:oSettings.title)+": "+oSettings.lang.imgResize+"</h3>";
-			sFBrowser += "	</div>";
-			sFBrowser += "	<div class=\"fbcontent\">";
-			sFBrowser += "		"+oSettings.lang.scale+": <span id=\"rszperc\">asdf</span><br/>";
-			sFBrowser += "		<div id=\"sfbrsimg\">";
-			sFBrowser += "			<img src=\"\" />";
-			sFBrowser += "			<div id=\"crop\"></div>";
-			sFBrowser += "			<div id=\"sfbButRszBut\" title=\""+oSettings.lang.dragMe+"\"></div>";
-			sFBrowser += "		</div>";
-			sFBrowser += "		<form id=\"sfbsize\">";
-			sFBrowser += "			<h4>"+oSettings.lang.resize+":</h4>";
-			sFBrowser += "			<label for=\"rszW\">"+oSettings.lang.width+"</label>: <input type=\"text\" name=\"rszW\" /> px<br/>";
-			sFBrowser += "			<label for=\"rszH\">"+oSettings.lang.height+"</label>: <input type=\"text\" name=\"rszH\" /> px<br/>";
-			//sFBrowser += "			Crop:<br/>";
-			//sFBrowser += "			x: <input type=\"text\" name=\"crpX\" /> px<br/>";
-			//sFBrowser += "			y: <input type=\"text\" name=\"crpY\" /> px<br/>";
-			//sFBrowser += "			w: <input type=\"text\" name=\"crpW\" /> px<br/>";
-			//sFBrowser += "			h: <input type=\"text\" name=\"crpH\" /> px<br/>";
-			//sFBrowser += "			<br/>Result:<br/>";
-			//sFBrowser += "			w: <span id=\"rsW\"></span> px<br/>";
-			//sFBrowser += "			h: <span id=\"rsH\"></span> px";
-			sFBrowser += "		</form>";
-			sFBrowser += "		<div class=\"button resize\">"+oSettings.lang.resize+"</div>";
-			sFBrowser += "		<div class=\"button cancelresize\">"+oSettings.lang.cancel+"</div>";
-			sFBrowser += "	</div>";
-			sFBrowser += "</div>";
-			sFBrowser += "</div>";
-
+			mFB = $(oSettings.browser);
+			mFB.find("div.sfbheader>h3").text(oSettings.title==""?oSettings.lang.sfb:oSettings.title);
+			mFB.find("div#loadbar>span").text(oSettings.lang.loading);
+			if (oSettings.dirs) mFB.find("ul#sfbtopmenu>li>a.newfolder").attr("title",oSettings.lang.newfolder).find("span").text(oSettings.lang.newfolder);
+			else mFB.find("ul#sfbtopmenu>li>a.newfolder").parent().remove();
+			if (oSettings.upload) mFB.find("ul#sfbtopmenu>li>a.upload").attr("title",oSettings.lang.upload).find("span").text(oSettings.lang.upload);
+			else mFB.find("ul#sfbtopmenu>li>a.upload").parent().remove();
+			if (!oSettings.fixed) mFB.find("ul#sfbtopmenu>li>a.cancelfb").attr("title",oSettings.lang.cancel).find("span").text(oSettings.lang.cancel);
+			else mFB.find("ul#sfbtopmenu>li>a.cancelfb").parent().remove();
+			mFB.find("table#filesDetails>thead>tr>th:eq(0)").text(oSettings.lang.name);
+			mFB.find("table#filesDetails>thead>tr>th:eq(1)").text(oSettings.lang.type);
+			mFB.find("table#filesDetails>thead>tr>th:eq(2)").text(oSettings.lang.size);
+			mFB.find("table#filesDetails>thead>tr>th:eq(3)").text(oSettings.lang.date);
+			mFB.find("table#filesDetails>thead>tr>th:eq(4)").text(oSettings.lang.dimensions);
+			if (!bHasImgs) mFB.find("table#filesDetails>thead>tr>th:eq(4)").remove();
+			mFB.find("div.choose").text(oSettings.lang.choose);
+			mFB.find("div.cancelfb").text(oSettings.lang.cancel);
+			mFB.find("div#sfbfooter").prepend("SFBrowser "+$.sfbrowser.version+" ");
+			//
+			mTrLoading = mFB.find("#filesDetails>tbody>tr").clone();
+			//
 			$("#sfbrowser").remove();
-			mFB = $(sFBrowser).appendTo(oSettings.inline);
+			mFB.appendTo(oSettings.inline);
 			if (!bOverlay) {
 				trace("sfb inline");
 				mFB.css(					{position:"relative",width:"auto",heigth:"auto"});
 				mFB.find("#fbbg").remove();
 				mFB.find("#fbwin").css(		{position:"relative"});
-				mFB.find("#sfbimgresize").css(		{position:"absolute",top:"0px",left:"0px",height:mFB.find("#fbwin").height()+"px"});
 			}
-
-			// context menu
-			var sFBcontext = "<ul id=\"sfbcontext\">";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton choose\" title=\""+oSettings.lang.choose+"\"><span>"+oSettings.lang.choose+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton rename\" title=\""+oSettings.lang.rename+"\"><span>"+oSettings.lang.rename+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton duplicate\" title=\""+oSettings.lang.duplicate+"\"><span>"+oSettings.lang.duplicate+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton resize\" title=\""+oSettings.lang.imgResize+"\"><span>"+oSettings.lang.imgResize+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton preview\" title=\""+oSettings.lang.view+"\"><span>"+oSettings.lang.view+"</span></a></li>";
-			sFBcontext += "<li><a onclick=\"\" class=\"textbutton filedelete\" title=\""+oSettings.lang.del+"\"><span>"+oSettings.lang.del+"</span></a></li>";
-			sFBcontext += "</ul>";
-			var mFBC = $(sFBcontext).appendTo("#sfbrowser");
-			mFBC.find("a.choose").click(function(){		chooseFile(); });
-			mFBC.find("a.rename").click(function(){		renameSelected(); });
-			mFBC.find("a.duplicate").click(function(){	duplicateFile(); });
-			mFBC.find("a.resize").click(function(){		resizeImage(); });
-			mFBC.find("a.preview").click(function(){		$("#sfbrowser tbody>tr.selected:first a.preview").trigger("click"); });
-			mFBC.find("a.filedelete").click(function(){	$("#sfbrowser tbody>tr.selected:first a.filedelete").trigger("click"); });
-			mFBC.find("a").click(function(){			$("#sfbcontext").slideUp("fast"); });
-
-			// functions
+			//
+			// context localize and functions
+			addContextItem("choose",		oSettings.lang.choose,		function(){chooseFile()});
+			addContextItem("rename",		oSettings.lang.rename,		function(){renameSelected()});
+			addContextItem("duplicate",		oSettings.lang.duplicate,	function(){duplicateFile()});
+			addContextItem("preview",		oSettings.lang.view,		function(){$("#sfbrowser tbody>tr.selected:first a.preview").trigger("click")});
+			addContextItem("filedelete",	oSettings.lang.del,			function(){$("#sfbrowser tbody>tr.selected:first a.filedelete").trigger("click")});
+			//
+			// functions ($$move to localisation)
 			if (bOverlay) $(window).bind("resize", reposition);
 			// top menu
+			//mFB.find("ul#sfbtopmenu>li>a.cancelfb").click(		function(){alert("close")} );
 			mFB.find(".cancelfb").click(		closeSFB );
 			mFB.find("#fileToUpload").change(	fileUpload);
 			mFB.find(".newfolder").click(		addFolder );
@@ -267,29 +227,37 @@
 			mFB.click(function(){
 				$("#sfbcontext").slideUp("fast");
 			});
-			// resize menu
-			mFB.find("div.cancelresize").click(function(){$("#sfbimgresize").hide();});
-			mFB.find("div.resize").click(resizeSend);
-			mFB.find("#sfbButRszBut").mousedown( function(){
-				$("body").mousemove(resizeMove);
+			// resizer
+			mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(){
+				$("body").mousemove(resize);
 				return false;
 			});
 			$("body").mouseup(function(){
-				$("body").unbind("mousemove",resizeMove);
+				$("body").unbind("mousemove",resize);
 			});
-			$("form#sfbsize>input[name=rszW]").change(function(){
-				var w = $(this).val();
-				resizeDo(fRzsScale*w,fRzsScale*(w/fRzsAspR));
+			//
+			// plugins
+			var oThis = {
+				// functions
+				 trace:				trace
+				,closeSFB:			closeSFB
+				,addContextItem:	addContextItem
+				,file:				file
+				,lang:				lang
+				// variables
+				,bOverlay:	bOverlay
+				,oSettings:	oSettings
+				,oContents:	oContents
+				,aPath:		aPath
+				,mFB:		mFB
+			};
+			$.each( oSettings.plugins, function(i,sPlugin) {
+				$.sfbrowser[sPlugin](oThis);
 			});
-			$("form#sfbsize>input[name=rszH]").change(function(){
-				var h = $(this).val();
-				resizeDo(fRzsScale*fRzsAspR*h,fRzsScale*h);
-			});
-
-
+			//
 			// start
 			openDir(sFolder);
-
+			//
 			// keys
 			// ESC : 27
 			// (F1 : xxx : help)				#impossible: F1 browser help
@@ -324,12 +292,8 @@
 			openSFB();
 		}
 	});
-	// init
-	$(function() {
-		trace("SFBrowser init");
-	});
 	
-	// private functions
+	///////////////////////////////////////////////////////////////////////////////// private functions
 	//
 	// open
 	function openSFB() {
@@ -349,21 +313,6 @@
 			$("#sfbrowser #fbwin").slideUp("normal",function(){$("#sfbrowser").remove();});
 		}
 	}
-	// reposition
-	function reposition() {
-		var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
-		var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
-		$("#fbwin").css({
-			 top:  fFbX
-			,left: fFbY
-		});
-		$("#sfbimgresize").css({
-			 height: $("#fbwin").height()
-			,top:  fFbX
-			,left: fFbY
-		});
-		$("#sfbcontext").slideUp("fast");
-	}
 	// sortFbTable
 	function sortFbTable(nr) {
 		if (nr!==null) {
@@ -372,19 +321,10 @@
 		} else {
 			if (!aSort[iSort]) aSort[iSort] = "asc";
 		}
-
-		//$("#sfbrowser tbody>tr").tsort("td:eq("+nr+")[abbr]",{attr:"abbr",order:aSort[nr]});
 		$("#sfbrowser tbody>tr.folder").tsort("td:eq(0)[abbr]",{attr:"abbr",order:aSort[iSort]});
 		$("#sfbrowser tbody>tr:not(.folder)").tsort("td:eq("+iSort+")[abbr]",{attr:"abbr",order:aSort[iSort]});
 
 		mFB.find("thead>tr>th>span").each(function(i,o){$(this).css({backgroundPosition:(i==iSort?5:-9)+"px "+(aSort[iSort]=="asc"?4:-96)+"px"})});
-	}
-	// open directory
-	function openDir(dir) {
-		trace("sfb openDir "+dir+" to "+oSettings.conn);
-		if (dir) aPath.push(dir);
-		else aPath.pop();
-		$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:fillList});
 	}
 	// fill list
 	function fillList(data,status) {
@@ -397,7 +337,7 @@
 				trace(lang(data.msg));
 				$("#sfbrowser tbody").children().remove();
 				$("#fbpreview").html("");
-				oContents = {};
+				clearObject(oContents);//oContents = {};
 				aSort = [];
 				$.each( data.data, function(i,oFile) {
 					// todo: logical operators could be better
@@ -407,14 +347,13 @@
 					}
 				});
 				if (aPath.length>1) listAdd({file:"..",mime:"folderup",rsize:0,size:"-",time:0,date:""});
-
 				$("#sfbrowser thead>tr>th:eq(0)").trigger("click");
 			}
 		}
 	}
 	// add item to list
-	function listAdd(obj) {;
-		trace("listAdd: "+obj.file);
+	function listAdd(obj) {
+		//trace("listAdd: "+obj.file);
 		oContents[obj.file] = obj;
 		var bFolder = obj.mime=="folder";
 		var bUFolder = obj.mime=="folderup";
@@ -427,76 +366,106 @@
 		var bVImg = (obj.width*obj.height)>0;
 		sTr += (bHasImgs?("<td"+(bVImg?(" abbr=\""+(obj.width*obj.height)+"\""):"")+">"+(bVImg?(obj.width+" x "+obj.height+" px"):"")+"</td>"):"");
 		sTr += "<td>";
-		if (!(bFolder||bUFolder)) sTr += "	<a onclick=\"\" class=\"button preview\" title=\""+oSettings.lang.view+"\">&nbsp;<span>"+oSettings.lang.view+"</span></a>";
-		if (!bUFolder) sTr += "	<a onclick=\"\" class=\"button filedelete\" title=\""+oSettings.lang.del+"\">&nbsp;<span>"+oSettings.lang.del+"</span></a>";
+		if (!(bFolder||bUFolder)) sTr += "	<a onclick=\"\" class=\"sfbbutton preview\" title=\""+oSettings.lang.view+"\">&nbsp;<span>"+oSettings.lang.view+"</span></a>";
+		if (!bUFolder) sTr += "	<a onclick=\"\" class=\"sfbbutton filedelete\" title=\""+oSettings.lang.del+"\">&nbsp;<span>"+oSettings.lang.del+"</span></a>";
 		sTr += "</td>";
 		sTr += "</tr>";
 		var mTr = $(sTr).prependTo("#sfbrowser tbody");
-		mTr.find("a.filedelete").bind("click", function(el) {
-			if (confirm(bFolder?oSettings.lang.confirmDeletef:oSettings.lang.confirmDelete)) {
-				$.ajax({type:"POST", url:oSettings.conn, data:"a=ka&folder="+aPath.join("")+"&file="+obj.file, dataType:"json", success:function(data, status){
-					if (typeof(data.error)!="undefined") {
-						if (data.error!="") {
-							trace(lang(data.error));
-							alert(lang(data.error));
-						} else {
-							trace(lang(data.msg));
-							$("#fbpreview").html("");
-							delete oContents[obj.file];
-							mTr.remove();
-						}
-					}
-				}});
-			}
-			return false; // to prevent renaming
-		});
+		obj.tr = mTr;
+		mTr.find("a.filedelete").click(deleteFile);
 		//mTr.find("td:last").css({textAlign:"right"}); // IE fix
+		mTr.folder = bFolder||bUFolder;
 		mTr.bind("mouseover", function() {
-			$(this).addClass("over");
+			mTr.addClass("over");
 		}).bind("mouseout", function() {
-			$(this).removeClass("over");
-		}).bind("dblclick", function() {
+			mTr.removeClass("over");
+		}).bind("dblclick", function(e) {
 			chooseFile($(this));
-			return false;
-		}).click( function(e) {
-			clickTr(this,false);
-			return false;
+			e.stopPropagation();
 		}).mousedown( function(e) {
-			var evt = e;
-			$(this).mouseup( function(e) {
-				$(this).unbind("mouseup");
-				if (evt.button==2) {
-					//trace("rightclick todo: create context menu: choose, rename, download, delete");
-					$("#sfbcontext").slideUp("fast",function(){
-						$("#sfbcontext").css({left:e.clientX+1,top:e.clientY+1});
-						// check context contents
-						$("#sfbcontext").children().css({display:"block"});
-						if (bFolder||bUFolder) {
-							$("#sfbcontext>li:has(a.preview)").css({display:"none"});
-							$("#sfbcontext>li:has(a.duplicate)").css({display:"none"});
-						}
-						if (bUFolder) {
-							$("#sfbcontext>li:has(a.rename)").css({display:"none"});
-							$("#sfbcontext>li:has(a.filedelete)").css({display:"none"});
-						}
-						if (!obj.width||!obj.height) $("#sfbcontext>li:has(a.resize)").css({display:"none"});
-						//
-						$("#sfbcontext").slideDown("fast")
-					});;
-					clickTr(this,true);
-					return false;
-				} else {
-					return true;
-				}
-			});
+			mTr.mouseup( function(e) {clickTr(this,e)} );
 		});
 		mTr[0].oncontextmenu = function() {
 			return false;
 		};
 		mTr.find("a.preview").bind("click", function(el) {
+			//trace(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file);
 			window.open(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file,"_blank");
 		});
 		return mTr;
+	}
+	// clickTr: left- or rightclick table row
+	function clickTr(el,e) {
+		var mTr = $(el);
+		mTr.unbind("mouseup");
+		var oFile = file(el);
+		var bFolder = oFile.mime=="folder";
+		var bUFolder = oFile.mime=="folderup";
+		var sFile = oFile.file;
+		var bRight = e.button==2;
+		var mCntx = $("#sfbcontext");
+		//
+		if (bRight) {
+			//trace("rightclick todo: create context menu: choose, rename, download, delete");
+			mCntx.slideUp("fast",function(){
+				mCntx.css({left:e.clientX+1,top:e.clientY+1});
+				// check context contents
+				mCntx.children().css({display:"block"});
+				if (bFolder||bUFolder) {
+					mCntx.find("li:has(a.preview)").css({display:"none"});
+					mCntx.find("li:has(a.duplicate)").css({display:"none"});
+				}
+				if (bUFolder) {
+					mCntx.find("li:has(a.rename)").css({display:"none"});
+					mCntx.find("li:has(a.filedelete)").css({display:"none"});
+				}
+				if (!oFile.width||!oFile.height) mCntx.find("li:has(a.resize)").css({display:"none"});
+				//
+				mCntx.slideDown("fast");
+			});
+		} else {
+			mCntx.slideUp("fast");
+		}
+		//
+		//if (!oSettings.keys[16]) trace("todo: shift selection");
+		if (!oSettings.keys[17]) $("#sfbrowser tbody>tr").each(function(){if (mTr[0]!=$(this)[0]) $(this).removeClass("selected")});
+		//
+		// check if something is being renamed
+//		var mTrRn = checkRename();
+//		if (mTrRn) {
+//			trace("checkRename: "+file(mTrRn)==file(mTr));
+//		}
+//		if ((mTrRn||file(mTrRn)!=file(mTr))&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]) {
+//		var mTrInp = $("#sfbrowser tbody>tr:has(td>input)");
+//		var bTrIsInp = file(mTrInp)==oFile;
+//		trace("mTr.find(\"td>input\"): "+!!mTr.find("td>input"));		
+
+		if (checkRename()[0]!=mTr[0]&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]) {
+			renameSelected(mTr);
+		} else {
+			if (oSettings.keys[17]&&!bRight) mTr.toggleClass("selected");
+			else mTr.addClass("selected");
+		}
+		// preview image
+		$("#fbpreview").html("");
+		if (oSettings.img.indexOf(oFile.mime)!=-1) {
+			var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // $$ cleanup img path
+			$("<img src=\""+sFuri+"\" />").appendTo("#fbpreview").click(function(){$(this).parent().toggleClass("auto")});
+		} else if (oSettings.ascii.indexOf(oFile.mime)!=-1) {// preview ascii
+			$("#fbpreview").html(oSettings.lang.previewText);
+			$.ajax({type:"POST", url:oSettings.conn, data:"a=mizu&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
+					if (typeof(data.error)!="undefined") {
+					if (data.error!="") {
+						trace("sfb error: "+lang(data.error));
+						alert(lang(data.error));
+					} else {
+						trace(lang(data.msg));
+						$("#fbpreview").html("<pre><div>"+oSettings.lang.previewPart.replace("#1",oSettings.preview)+"</div>\n"+data.data.text.replace(/\>/g,"&gt;").replace(/\</g,"&lt;")+"</pre>");
+					}
+				}
+			}});
+		}
+		return false;
 	}
 	// chooseFile
 	function chooseFile(el) {
@@ -535,54 +504,19 @@
 			closeSFB();
 		}
 	}
-	// clickTr
-	function clickTr(el,right) {
-		var mTr = $(el);
-		var oFile = oContents[mTr.attr("id")];
-		var bFolder = oFile.mime=="folder";
-		var bUFolder = oFile.mime=="folderup";
-		var sFile = oFile.file;
-		//
-		//if (!oSettings.keys[16]) trace("todo: shift selection");
-		if (!oSettings.keys[17]) $("#sfbrowser tbody>tr").each(function(){if (mTr[0]!=$(this)[0]) $(this).removeClass("selected")});
-		//
-		// check if something is being renamed
-		if (checkRename()[0]!=mTr[0]&&!right&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]) {
-			renameSelected(mTr);
-		} else {
-			if (oSettings.keys[17]&&!right) mTr.toggleClass("selected");
-			else mTr.addClass("selected");
-		}
-		//
-		$("#fbpreview").html("");
-		//
-		// preview image
-		if (oSettings.img.indexOf(oFile.mime)!=-1) {
-			var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // $$ cleanup img path
-			$("<img src=\""+sFuri+"\" />").appendTo("#fbpreview").click(function(){$(this).parent().toggleClass("auto")});
-		//
-		// preview ascii
-		} else if (oSettings.ascii.indexOf(oFile.mime)!=-1) {
-			$("#fbpreview").html(oSettings.lang.previewText);
-			$.ajax({type:"POST", url:oSettings.conn, data:"a=mizu&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
-					if (typeof(data.error)!="undefined") {
-					if (data.error!="") {
-						trace("sfb error: "+lang(data.error));
-						alert(lang(data.error));
-					} else {
-						trace(lang(data.msg));
-						$("#fbpreview").html("<pre><div>"+oSettings.lang.previewPart.replace("#1",oSettings.preview)+"</div>\n"+data.data.text.replace(/\>/g,"&gt;").replace(/\</g,"&lt;")+"</pre>");
-					}
-				}
-			}});
-		}
-		return false;
+	///////////////////////////////////////////////////////////////////////////////// actions
+	//
+	// open directory
+	function openDir(dir) {
+		mFB.find("#filesDetails>tbody").html(mTrLoading);
+		trace("sfb openDir "+dir+" to "+oSettings.conn);
+		if (dir) aPath.push(dir);
+		else aPath.pop();
+		$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:fillList});
 	}
 	// duplicate file
 	function duplicateFile(el) {
-		var mSelected = el?el:$("#sfbrowser tbody>tr.selected:first");
-		var mStd = mSelected.find("td:eq(0)");
-		var oFile = oContents[mSelected.attr("id")];
+		var oFile = file(el);
 		var sFile = oFile.file;
 		//
 		trace("sfb Sending duplication request...");
@@ -598,114 +532,39 @@
 			}
 		}});
 	}
-	// resize Image
-	function resizeImage(el) {
-		var mSelected = el?el:$("#sfbrowser tbody>tr.selected:first");
-		var mStd = mSelected.find("td:eq(0)");
-		var oFile = oContents[mSelected.attr("id")];
-		var sFile = oFile.file;
+	// delete
+	function deleteFile(e) {
+		var mTr = $(e.target).parent().parent();
+		var oFile = file(mTr);
+		var bFolder = oFile.mime=="folder";
 		//
-		var iRW = oFile.width;
-		var iRH = oFile.height;
-		var iMaxW = 400;
-		var iMaxH = 360;
-		var fScaleW = iMaxW/oFile.width;
-		var fScaleH = iMaxH/oFile.height;
-		fRzsScale = Math.min(1,Math.min(fScaleW,fScaleH));
-		fRzsAspR = iRW/iRH;
-		var iSW = fRzsScale*iRW;
-		var iSH = fRzsScale*iRH;
+//		for (var sProp in e) trace("sProp: "+sProp+" "+e[sProp]);
+//		trace("asdf: "+e.target+" "+$(e.target).parent().parent().attr("id"));
+//		trace("qwer: "+this+" "+$(this).attr("class"));
 		//
-		// set image sizes
-		var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // $$ cleanup img path
-		var mImg = $("#sfbimgresize>div.fbcontent>div#sfbrsimg>img");
-		mImg.attr("src",sFuri);
-		mImg.width(iSW+"px");
-		mImg.height(iSH+"px");
-		var mCrop = $("#sfbimgresize>div.fbcontent>div#sfbrsimg>div#crop");
-		mCrop.width(iSW+"px");
-		mCrop.height(iSH+"px");
-		$("#rszperc").text(" "+Math.round(100*fRzsScale)+"%");
-		$("div#sfbButRszBut").css({left:(iSW-6)+"px",top:(iSH-6)+"px"});
-		//
-		// set form
-		$("form#sfbsize>input[name=rszW]").val(iRW);
-		$("form#sfbsize>input[name=rszH]").val(iRH);
-		//$("form#sfbsize>input[name=crpX]").val(0);
-		//$("form#sfbsize>input[name=crpY]").val(0);
-		//$("form#sfbsize>input[name=crpW]").val(iRW);
-		//$("form#sfbsize>input[name=crpH]").val(iRH);
-		//$("form#sfbsize>span#rsW").text(iRW);
-		//$("form#sfbsize>span#rsH").text(iRH);
-		//$("#sfbimgresize>div.fbcontent").append(oSettings.lang.resize+" "+fScaleW+" "+fScaleW);
-		//
-		// show resize window
-		$("#sfbimgresize").show();
-	}
-	function resizeMove(e) {
-		var mElm = $("#sfbButRszBut");
-		var mPrn = mElm.parent();
-		var iXps = e.pageX-mPrn.offset().left;
-		var iYps = e.pageY-mPrn.offset().top;
-		resizeDo(iXps,iYps);
-	}
-	function resizeDo(w,h) {
-		var mSelected = $("#sfbrowser tbody>tr.selected:first");
-		var oFile = oContents[mSelected.attr("id")];
-		var sFile = oFile.file;
-		//
-		w = Math.max(1,Math.min(w,fRzsScale*oFile.width));
-		h = Math.max(1,Math.min(h,fRzsScale*oFile.height));
-		//
-		if (w/h>fRzsAspR)	h = w/fRzsAspR;
-		else				w = h*fRzsAspR;
-		//
-		var mElm = $("#sfbButRszBut");
-		mElm.css({left:(w-6)+"px",top:(h-6)+"px"});
-		var mImg = $("#sfbimgresize>div.fbcontent>div#sfbrsimg>img");
-		mImg.width(w+"px");
-		mImg.height(h+"px");
-		//
-		var iRW = Math.round(w/fRzsScale);
-		var iRH = Math.round(h/fRzsScale);
-		$("form#sfbsize>input[name=rszW]").val(iRW);
-		$("form#sfbsize>input[name=rszH]").val(iRH);
-	}
-	function resizeSend() {
-		trace("sfb resizeSend");
-		var mSelected = $("#sfbrowser tbody>tr.selected:first");
-		var oFile = oContents[mSelected.attr("id")];
-		var sFile = oFile.file;
-		var iW = $("form#sfbsize>input[name=rszW]").val();
-		var iH = $("form#sfbsize>input[name=rszH]").val();
-
-		if (iW==oFile.width&&iH==oFile.height) {
-			trace("sfb Will not resize to same size."); // $$ alert something?
-		} else {
-			trace("sfb Sending resize request...");
-			$.ajax({type:"POST", url:oSettings.conn, data:"a=bar&folder="+aPath.join("")+"&file="+sFile+"&w="+iW+"&h="+iH, dataType:"json", success:function(data, status){
+		if (confirm(bFolder?oSettings.lang.confirmDeletef:oSettings.lang.confirmDelete)) {
+			$.ajax({type:"POST", url:oSettings.conn, data:"a=ka&folder="+aPath.join("")+"&file="+oFile.file, dataType:"json", success:function(data, status){
 				if (typeof(data.error)!="undefined") {
 					if (data.error!="") {
 						trace(lang(data.error));
 						alert(lang(data.error));
 					} else {
-						oFile.width  = iW;
-						oFile.height = iH;
-						mSelected.find("td:eq(4)").attr("abbr",iW*iH).text(iW+" x "+iH+" px");
-						//
-						$("#sfbimgresize").hide();
+						trace(lang(data.msg));
+						$("#fbpreview").html("");
+						delete oContents[oFile.file];
+						mTr.remove();
 					}
 				}
 			}});
 		}
+		e.stopPropagation();
 	}
 	// rename
-	function renameSelected(el) {
-		var mSelected = el?el:$("#sfbrowser tbody>tr.selected:first");
-		var mStd = mSelected.find("td:eq(0)");
-		var oFile = oContents[mSelected.attr("id")];
+	function renameSelected(e) {
+		var oFile = file(e);
+		var mStd = oFile.tr.find("td:eq(0)");
 		mStd.html("");
-		$("<input type=\"text\" value=\""+oFile.file+"\" />").appendTo(mStd).click(function(){return false;});
+		$("<input type=\"text\" value=\""+oFile.file+"\" />").appendTo(mStd).click(stopEvt).dblclick(stopEvt).mousedown(stopEvt);
 	}
 	function checkRename() {
 		var aRenamed = $("#sfbrowser tbody>tr>td>input");
@@ -754,12 +613,6 @@
 			}
 		}});
 	}
-	// loading
-	function loading() {
-		var iPrgMove = Math.ceil((new Date()).getTime()*.3)%512;
-		$("#loadbar>div").css("backgroundPosition", "0px "+iPrgMove+"px");
-		$("#loadbar:visible").each(function(){setTimeout(loading,20);});
-	}
 	// fileUpload
 	function fileUpload() {
 		trace("sfb fileUpload");
@@ -797,12 +650,67 @@
 		});
 		return false;
 	}
+	// loading
+	function loading() {
+		var iPrgMove = Math.ceil((new Date()).getTime()*.3)%512;
+		$("#loadbar>div").css("backgroundPosition", "0px "+iPrgMove+"px");
+		$("#loadbar:visible").each(function(){setTimeout(loading,20);});
+	}
+	///////////////////////////////////////////////////////////////////////////////// misc methods
+	//
+	// get file object from tr
+	function file(tr) {
+		if (!tr) tr = $("#sfbrowser tbody>tr.selected:first");
+		return oContents[$(tr).attr("id")];
+	}
+	// addContextItem
+	function addContextItem(className,title,fnc,after) {
+		if (after===undefined) $("<li><a class=\"textbutton "+className+"\" title=\""+title+"\"><span>"+title+"</span></a></li>").appendTo("ul#sfbcontext").find("a").click(fnc).click(function(){$("#sfbcontext").slideUp("fast")});
+		else $("<li><a class=\"textbutton "+className+"\" title=\""+title+"\"><span>"+title+"</span></a></li>").insertAfter("ul#sfbcontext>li:eq("+after+")").find("a").click(fnc).click(function(){$("#sfbcontext").slideUp("fast")});
+	}
+//	// setButton
+//	function setButton(src,find,lang,fnc) {
+//		$("ul#sfbcontext")
+//		var mBut = src.find(find);
+//		if (lang&&lang!="") mBut.attr("title",lang).find("span").text(lang);
+//		if (fnc) mBut.click(fnc);
+//	}
 	// lang
 	function lang(s) {
-//		var aStr = s.split("#");
-//		sReturn = oSettings.lang[aStr[0]]?oSettings.lang[aStr[0]]:s;
-//		if (aStr.length>1) for (var i=1;i<aStr.length;i++) sReturn = sReturn.replace("#"+i,aStr[i]);
-		return s;//Return;
+		var aStr = s.split("#");
+		sReturn = oSettings.lang[aStr[0]]?oSettings.lang[aStr[0]]:s;
+		if (aStr.length>1) for (var i=1;i<aStr.length;i++) sReturn = sReturn.replace("#"+i,aStr[i]);
+		return sReturn;
+	}
+	// clearObject
+	function clearObject(o) {
+		for (var sProp in o) delete o[sProp];
+	}
+	// resize
+	function resize(e) {
+		var mElm = $("div#resizer");
+		var mPrn = mElm.parent();
+		var iWdt = e.pageX-mPrn.offset().left;
+		var iHgt = e.pageY-mPrn.offset().top;
+		$("#sfbrowser div#fbwin").css({width:iWdt+"px",height:iHgt+"px"});
+		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
+		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
+		$.each( oSettings.plugins, function(i,sPlugin) {
+			if ($.sfbrowser[sPlugin].resize) $.sfbrowser[sPlugin].resize(iWdt,iHgt);
+		});
+	}
+	// reposition
+	function reposition() {
+		var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
+		var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
+		$("#fbwin").css({
+			 top:  fFbX
+			,left: fFbY
+		});
+		$("#sfbcontext").slideUp("fast");
+		$.each( oSettings.plugins, function(i,sPlugin) {
+			if ($.sfbrowser[sPlugin].reposition) $.sfbrowser[sPlugin].reposition(fFbX,fFbY);
+		});
 	}
 	// is numeric
 	function isNum(n) {
@@ -814,7 +722,11 @@
 			if (typeof(o)=="string")	window.console.log(o);
 			else						for (var prop in o) window.console.log(prop+": "+o[prop]);
 		}
-	};
+	}
+	// stop event propagation
+	function stopEvt(e) {
+		e.stopPropagation();
+	}
 	////////////////////////////////////////////////////////////////
 	//
 	// here starts copied functions from http://www.phpletter.com/Demo/AjaxFileUpload-Demo/

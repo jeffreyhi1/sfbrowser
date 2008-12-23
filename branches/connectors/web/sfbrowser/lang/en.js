@@ -38,12 +38,7 @@ $.sfbrowser.defaults.lang =	{
 	,title:					"Title"
 	,thumbnail:				"Thumbnail"
 
-	,resize:				"Resize"
-	,scale:					"Scale"
-	,width:					"Width"
-	,height:				"Height"
 	,dragMe:				"Drag me"
-	,duplicate:				"Duplicate"
 	
 	// files
 	,fileUploaded:			"File uploaded"
@@ -53,12 +48,9 @@ $.sfbrowser.defaults.lang =	{
 	,fileExistsrenamed:		"The file already exists, it has been uploaded and appended by a number."
 	,fileRenamed:			"Rename succesfull"
 
+	,duplicate:				"Duplicate"
 	,fileDuplicated:		"Duplication succesfull"
 	,fileNotduplicated:		"Duplication failed"
-
-	,imgResize:				"Resize image"
-	,imgResized:			"Image resized"
-	,imgNotresized:			"Image resize failed"
 
 	// folders
 	,folderCreated:			"Folder created"

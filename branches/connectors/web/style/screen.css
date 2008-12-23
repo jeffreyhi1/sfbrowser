@@ -16,7 +16,7 @@ body {
 	margin: 0 auto;
 }
 	#header h1 {
-	margin: 0px;
+		margin: 0px;
 		height: 34px;
 		padding-left: 50px;
 		font-weight: normal;
@@ -57,12 +57,11 @@ body {
 }
 #page h2 {
 	font-weight: normal;
-}
-#page h2 {
 	color: #000;
 	font-size: 1.2em;
 	border-bottom: 1px solid #aaa;
 	clear:both;
+	margin-top: 60px;
 }
 #page h3 {
 	font-size: .9em;

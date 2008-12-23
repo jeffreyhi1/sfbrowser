@@ -15,6 +15,7 @@ body, html {
 	left: 0px;
 	width: 100%;
 	height: 100%;
+	z-index: 99;
 }
 	#sfbrowser a {
 		text-decoration: none;
@@ -33,9 +34,9 @@ body, html {
 #sfbrowser div#fbwin {
 	position: fixed;
 	width: 600px;
-	/*height: 435px;*/
 	border: 2px outset #888;
-	background: #d8d8d8 url(sfbg.jpg) 0px 0px;
+	background: #D5D5D5 url(sfbg.jpg) 0px 0px repeat-x;
+	overflow: hidden;
 }
 	/* header */
 	#sfbrowser .sfbheader {
@@ -111,14 +112,15 @@ body, html {
 			}
 		
 	/* anchor buttons */
-	#sfbrowser a.button, #sfbrowser a.textbutton {
+	#sfbrowser a.sfbbutton, #sfbrowser a.textbutton {
 		background: transparent no-repeat 0px 0px;
 		cursor: hand;
 		cursor: pointer;
 		padding: 0px 0px 0px 16px;
 		border: 0px;
+		float: none !important;
 	}
-	#sfbrowser a.button:hover, #sfbrowser a.textbutton:hover {
+	#sfbrowser a.sfbbutton:hover, #sfbrowser a.textbutton:hover {
 		background-position: 1px 1px;
 	}
 	#sfbrowser a.textbutton span {
@@ -128,7 +130,7 @@ body, html {
 		text-decoration: none;
 		color: #000;
 	}
-	#sfbrowser a.button span {
+	#sfbrowser a.sfbbutton span {
 		display: none;
 	}
 	#sfbrowser a.cancelfb {		background-image: url("close.gif");}
@@ -139,29 +141,14 @@ body, html {
 	#sfbrowser a.rename {		background-image: url("rename.gif");}
 	#sfbrowser a.newfolder {	background-image: url("folder_new.gif");}
 	#sfbrowser a.duplicate {	background-image: url("files.gif");}
-	#sfbrowser a.resize {		background-image: url("image_scale.gif");}
 
 	/* table anchor buttons */
-	#sfbrowser #fbwin table a.button {
-		padding-bottom:2px;;
+	#sfbrowser #fbwin table a.sfbbutton {
+		padding-bottom:2px;
 	}
-	/*#sfbrowser #fbwin table a.button, #sfbrowser #fbwin table a.textbutton {
-		background-position: 0px 5px;
-		float: right;
-		display: block;
-		height: 26px;
-		padding: 0px 0px 0px 20px;
-	}
-	#sfbrowser #fbwin table a.button:hover, #sfbrowser #fbwin table a.textbutton:hover {
-		background-position: 1px 6px;
-	}*/
-	/*#sfbrowser #fbwin table a.button {
-		width: 18px;
-	}*/
-
 
 	/* big buttons */
-	#sfbrowser div.button {
+	#sfbrowser div.sfbbutton {
 		position: absolute;
 		right: 10px;
 		width: 100px;
@@ -177,33 +164,18 @@ body, html {
 		cursor: hand;
 		cursor: pointer;
 	}
-	#sfbrowser div.button:hover {
+	#sfbrowser div.sfbbutton:hover {
 		border-style: inset;
 		padding: 6px 1px 4px 3px;
 		background-position: 0px -2px;
 		color: #000;
 	}
 	#sfbrowser div.choose {
-		top: 275px;
+		bottom: 60px;
 	}
 	#sfbrowser div.cancelfb {
-		top: 310px;
+		bottom: 30px;
 	}
-	/*#sfbrowser a.upload {
-		position: absolute;
-		top: 6px;
-		right: 60px;
-		z-index: 10;
-	}
-	#sfbrowser a.upload span {
-		position: relative;
-		top: 3px;
-	}
-	#sfbrowser a.cancelfb {
-		position: absolute;
-		top: 6px;
-		right: 10px;
-	}*/
 
 	/* content */
 	#sfbrowser .fbcontent {
@@ -213,25 +185,29 @@ body, html {
 	/* sfbrowser table */
 	#sfbrowser div#fbtable {
 		height: 226px;
+		/*height: 60%;*/
 		overflow: auto;
-		overflow-x: hidden;
+		/*overflow-y: hidden;*/
+		/*overflow-x: hidden;*/
 		border: 2px solid #888;
 		border-color: #888 #fff #fff #888;
 		background-color: #fff;
 
 	}
 	#sfbrowser table {
-		height: 226px;
+		/*height: 226px;
+		height: 100%;*/
 		width: 100%;
 		border: 0px;
+		overflow: hidden;
 	}
-		#sfbrowser tbody, #sfbrowser thead {
+		/*#sfbrowser tbody, #sfbrowser thead {
 			width: 340px;
 		}
 		#sfbrowser thead {
 		}
 			#sfbrowser thead tr	{
-			}
+			}*/
 				#sfbrowser thead th {
 					height: 12px !important; 
 					font-family: verdana;
@@ -258,10 +234,12 @@ body, html {
 					background: url(ascdesc.gif) -9px 0px no-repeat;
 				}
 		#sfbrowser table>tbody {
+			/*height: 198px;
+			height: 2%;*/
+			/**/
 			height: 198px;
 			overflow: auto; 
-			overflow-x: hidden;
-
+			overflow-x: hidden;			
 		}
 			#sfbrowser table tbody tr {
 				height: 26px !important;
@@ -292,10 +270,11 @@ body, html {
 					background-position: 1px 4px;
 				}
 					#sfbrowser td input {
-						border: 1px solid #666;
+						border: 1px solid #64A5D3;
 						margin: 4px -22px 0px 0px;
 						padding: 0px;
 						line-height: 14px;
+						width: 90%;
 					}
 
 /* preview */
@@ -347,10 +326,12 @@ body, html {
 		font-size: 11px;
 		line-height: 13px;
 	}
+
+/* footer */
 #sfbrowser div#sfbfooter {
 	position: absolute;
 	bottom: 0px;
-	right: 9px;
+	right: 16px;
 	font-size: 7px !important; 
 	color: #aaa;
 }
@@ -400,58 +381,13 @@ body, html {
 	padding: 0px 3px 1px 3px;
 }
 
-/* resize */
-#sfbrowser div#sfbimgresize {
-	display: none;
-	position: fixed;
-	width: 600px;
-	/*height: 435px;*/
-	border: 2px outset #888;
-	background: #d8d8d8 url(sfbg.jpg) 0px 0px;
+/* resizer */
+div#resizer {
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	width: 16px;
+	height: 16px;
+	background: transparent url(resizer.gif) 3px 3px no-repeat;
+	cursor: move;
 }
-	#sfbrowser div#sfbimgresize h4 {
-		margin: 0px;
-	}
-	#sfbrowser div#sfbimgresize label {
-		width: 60px;
-	}
-	#sfbrowser div.resize {
-		top: 305px;
-	}
-	#sfbrowser div.cancelresize {
-		top: 340px;
-	}
-	#sfbrowser div#sfbimgresize div#sfbrsimg {
-		position: relative;
-		width: 577px;
-		height: 334px;
-	}
-		#sfbrowser div#sfbimgresize div#sfbrsimg img {
-			width: 10%;
-			height: 10%;
-			border: 1px dashed #000;
-		}
-		#sfbrowser div#sfbimgresize div#sfbrsimg div#crop {
-			position: absolute;
-			top: 0px;
-			left: 0px;
-			border: 1px dashed red;
-		}
-		#sfbrowser div#sfbimgresize div#sfbrsimg div#sfbButRszBut {
-			position: absolute;
-			top: 0px;
-			left: 0px;
-			width: 10px;
-			height: 10px;
-			border: 1px solid black;
-			background-color: #fff;
-		}
-	#sfbrowser div#sfbimgresize form#sfbsize {
-		display: block;
-		position: absolute;
-		top: 43px;
-		left: 430px;
-	}
-		#sfbrowser div#sfbimgresize form#sfbsize input {
-			width: 60px;
-		}

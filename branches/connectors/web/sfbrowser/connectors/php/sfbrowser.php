@@ -16,36 +16,20 @@ $sConnBse = "../../";
 include("config.php");
 include("functions.php");
 //
-// action
-if (isset($_POST["a"])||isset($_GET["a"])) {
-	$sAction = isset($_POST["a"])?$_POST["a"]:$_GET["a"];
-	$aPostAmt = array(
-		 "chi"=>	array(0,2,0)
-		,"kung"=>	array(0,3,0)
-		,"fu"=>		array(0,5,1)
-		,"bar"=>	array(0,5,0)
-		,"ka"=>		array(0,3,0)
-		,"sui"=>	array(2,0,0)
-		,"mizu"=>	array(0,3,0)
-		,"ho"=>		array(0,4,0)
-		,"tsuchi"=>	array(0,3,0)
-	);
-	$aChck = $aPostAmt[$sAction];
-	if (!(count($_GET)==$aChck[0]&&count($_POST)==$aChck[1]&&count($_FILES)==$aChck[2])) exit(SFB_ERROR_RETURN);
-} else {
-	exit(SFB_ERROR_RETURN);
-}
-//
 // security file checking
-$sSFile = "";
-if (isset($_POST["file"])) $sSFile = $_POST["file"];
-else if (isset($_GET["file"])) $sSFile = $_GET["file"];
-else if (isset($_FILES["fileToUpload"])) $sSFile = $_FILES["fileToUpload"]["name"];
-if ($sSFile!="") {
-	if (isset($_POST["folder"])) $sSFile = $sConnBse.$_POST["folder"].$sSFile;
-	if (strstr($sSFile,"sfbrowser")!==false||!preg_match('/[^:\*\?<>\|(\.\/)]+\/[^:\*\?<>\|(\.\/)]/',$sSFile)) exit(SFB_ERROR_RETURN);
-	// todo: maybe check SFB_DENY here as well
-}
+$aVldt = validateInput($sConnBse,array(
+	 "chi"=>	array(0,2,0)
+	,"kung"=>	array(0,3,0)
+	,"fu"=>		array(0,5,1)
+	,"ka"=>		array(0,3,0)
+	,"sui"=>	array(2,0,0)
+	,"mizu"=>	array(0,3,0)
+	,"ho"=>		array(0,4,0)
+	,"tsuchi"=>	array(0,3,0)
+));
+$sAction = $aVldt["action"];
+$sSFile = $aVldt["file"];
+$sErr .= $aVldt["error"];
 //
 //
 function fileInfo($sFile) {
@@ -108,12 +92,16 @@ switch ($sAction) {
 		$sData = substr($sImg,0,strlen($sImg)-1);
 	break;
 
-	case "kung": // duplicate image
+	case "kung": // duplicate file
 		$sCRegx = "/(?<=(_copy))([0-9])+(?=(\.))/";
 		$sNRegx = "/(\.)(?=[A-Za-z0-9]+$)/";
 		$oMtch = preg_match( $sCRegx, $sSFile, $aMatches);
 		if (count($aMatches)>0)	$sNewFile = preg_replace($sCRegx,intval($aMatches[0])+1,$sSFile);
 		else					$sNewFile = preg_replace($sNRegx,"_copy0.",$sSFile);
+		while (file_exists($sNewFile)) { // $$ there could be a quicker way
+			$oMtch = preg_match( $sCRegx, $sNewFile, $aMatches);
+			$sNewFile = preg_replace($sCRegx,intval($aMatches[0])+1,$sNewFile);
+		}
 		if (copy($sSFile,$sNewFile)) {
 			$oFNfo = fileInfo($sNewFile);
 			$sData = $oFNfo["stringdata"];
@@ -140,7 +128,7 @@ switch ($sAction) {
 		} else if (empty($_FILES["fileToUpload"]["tmp_name"])||$_FILES["fileToUpload"]["tmp_name"]=="none") {
 			$sErr = "No file was uploaded..";
 		} else {
-			$sFolder = $_POST["folder"]; // $$ compare folder and base_uri (base uri deleted)
+			$sFolder = $_POST["folder"];
 			$sMsg .= "sFolder_".$sFolder;
 			$sPath = $sFolder;
 
@@ -213,17 +201,6 @@ switch ($sAction) {
 		}
 	break;
 
-	case "bar": // image resize
-		$iToW = $_POST["w"];
-		$iToH = $_POST["h"];
-		list($iW,$iH) = getimagesize($sSFile);
-		$oImgN = imagecreatetruecolor($iToW,$iToH);
-		$oImg = imagecreatefromjpeg($sSFile);
-		imagecopyresampled($oImgN,$oImg, 0,0, 0,0, $iToW,$iToH, $iW,$iH );
-		if (imagejpeg($oImgN, $sSFile)) $sMsg .= "imgResized";
-		else							$sERR .= "imgNotresized";
-	break;
-
 	case "ka": // file delete
 		if (count($_POST)!=3||!isset($_POST["folder"])||!isset($_POST["file"])) exit("ku ka");
 		if (is_file($sSFile)) {
@@ -246,6 +223,7 @@ switch ($sAction) {
 		header("Content-Transfer-Encoding: binary\n");
 		ob_end_clean();
 		readfile($sSFile);
+		exit();
 	break;
 
 	case "mizu":// read txt file contents
@@ -302,5 +280,4 @@ switch ($sAction) {
 		}
 	break;
 }
-$sEcho = "{error: \"".$sErr."\", msg: \"".$sMsg."\", data: {".$sData."}}";
-if ($sAction!="sui") echo $sEcho;
+echo "{error: \"".$sErr."\", msg: \"".$sMsg."\", data: {".$sData."}}";

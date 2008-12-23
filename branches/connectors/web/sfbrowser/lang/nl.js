@@ -37,14 +37,9 @@ $.sfbrowser.defaults.lang =	{
 	,dimensions:			"Verhoudingen"
 	,title:					"Titel"
 	,thumbnail:				"Thumbnail"
-
-	,resize:				"Resize"
-	,scale:					"Scale"
-	,width:					"Width"
-	,height:				"Height"
-	,dragMe:				"Drag me"
-	,duplicate:				"Duplicate"
 	
+	,dragMe:				"Sleep mij"
+
 	// files
 	,fileUploaded:			"Bestand ge-upload"
 	,fileDeleted:			"Bestand verwijderd"
@@ -53,12 +48,9 @@ $.sfbrowser.defaults.lang =	{
 	,fileExistsrenamed:		"Het bestand bestaat al, het is hernoemd met een nr."
 	,fileRenamed:			"Bestand hernoemd"
 
+	,duplicate:				"Dupliceer"
 	,fileDuplicated:		"Duplicatie gelukt"
 	,fileNotduplicated:		"Duplicatie niet gelukt"
-
-	,imgResize:				"Verschaal afbeelding"
-	,imgResized:			"Afbeelding verschaalt"
-	,imgNotresized:			"Verschalen mislukt"
 
 	// folders
 	,folderCreated:			"Map aangemaakt"

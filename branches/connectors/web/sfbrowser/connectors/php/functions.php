@@ -25,6 +25,64 @@ function format_size($size, $round = 0) {
     return round($size,$round).$sizes[$i];
 }
 
+function getBody($path) {
+	$oHtBrowser = fopen($path,"r");
+	$sBrowser = fread($oHtBrowser,filesize($path));
+	fclose($oHtBrowser);
+	if (preg_match('@<body[^>]*>(.*)</body>@Usi', $sBrowser, $regs)) $sCnt = preg_replace(array("/\n/","/\r/","/\t/","/\"/"),array("","","","\\\""),$regs[1]);
+	return $sCnt;
+}
+
+function pathWithin($path,$inpath) {
+	$sRegFld = "/(\w+\/+\.\.\/+)/";
+	$sRegDbl = "/\/+/";
+	$sRegWht = "/\s+/";
+	$aFind = array($sRegWht,$sRegFld,$sRegDbl);
+	$aRepl = array("","","/");
+	$path = preg_replace($aFind,$aRepl,$path);
+	$inpath = preg_replace($aFind,$aRepl,$inpath);
+	//echo substr($path,0,strlen($inpath))."\n";
+	//echo $inpath."\n";
+	return substr($path,0,strlen($inpath))===$inpath;
+}
+
+function validateInput($sConnBse,$aGPF) {
+	$sErr = "";
+	// check input
+	if (isset($_POST["a"])||isset($_GET["a"])) {
+		$sAction = isset($_POST["a"])?$_POST["a"]:$_GET["a"];
+		$aChck = $aGPF[$sAction];
+		if (!(count($_GET)==$aChck[0]&&count($_POST)==$aChck[1]&&count($_FILES)==$aChck[2])) $sErr .= sterf("input does not match action");
+	} else {
+		$sErr .= sterf("no action set");
+	}
+	// check files
+	$sSFile = "";
+	if (isset($_POST["file"])) $sSFile = $_POST["file"];
+	else if (isset($_GET["file"])) $sSFile = $_GET["file"];
+	else if (isset($_FILES["fileToUpload"])) $sSFile = $_FILES["fileToUpload"]["name"];
+	//
+	$bFld = isset($_POST["folder"]);
+	if ($sSFile!="") {
+		if ($bFld) $sSFile = $sConnBse.$_POST["folder"].$sSFile;
+		if (strstr($sSFile,"sfbrowser")!==false||!preg_match('/[^:\*\?<>\|(\.\/)]+\/[^:\*\?<>\|(\.\/)]/',$sSFile)) $sErr .= sterf("not a valid path");
+		// $$todo: maybe check SFB_DENY here as well
+		// check if path within base path
+		if (!pathWithin($sSFile,($bFld?$sConnBse:"").SFB_BASE)) $sErr .= sterf("file not within base: [".$sSFile."] [".SFB_BASE."]");
+	} else if ($bFld&&!pathWithin($_POST["folder"],SFB_BASE)) {
+		$sErr .= sterf("path not within base");
+	}
+	return array("action"=>$sAction,"file"=>$sSFile,"error"=>$sErr);
+}
+
+function sterf($sErr) {
+	if (SFB_DEBUG) return $sErr;
+	else {
+
+		exit(SFB_ERROR_RETURN);
+	}
+}
+
 //function constantsToJs($a) {
 //	foreach ($a as $s) {
 //		$oVal = @constant($s);

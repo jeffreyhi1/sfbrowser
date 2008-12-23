@@ -37,13 +37,8 @@ $.sfbrowser.defaults.lang =	{
 	,dimensions:			"Dimensiones"
 	,title:					"Título"
 	,thumbnail:				"Miniatura"
-
-	,resize:				"Redimensionar"
-	,scale:					"Escala"
-	,width:					"Anchura"
-	,height:				"Altura"
+	
 	,dragMe:				"Me arrastre"
-	,duplicate:				"Duplicar"
 
 	// files
 	,fileUploaded:			"Archivo cargado"
@@ -53,12 +48,10 @@ $.sfbrowser.defaults.lang =	{
 	,fileExistsrenamed:		"El archivo ya existe, ha sido subido y agregado un numero de sufijo."
 	,fileRenamed:			"Renombrado exitosamente"
 
+	,duplicate:				"Duplicar"
 	,fileDuplicated:		"La duplicación succesfull"
 	,fileNotduplicated:		"La duplicación no"
 
-	,imgResize:				"Cambia el tamaño de la imagen"
-	,imgResized:			"El tamaño de la imagen"
-	,imgNotresized:			"El tamaño de imagen no"
 
 	// folders
 	,folderCreated:			"Carpeta creada"
