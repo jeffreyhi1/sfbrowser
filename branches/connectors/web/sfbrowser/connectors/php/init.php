@@ -14,12 +14,13 @@ $sSfbHtml = getBody(SFB_PATH."browser.html");
 if (SFB_PLUGINS!="") $aPlugins = split(",",SFB_PLUGINS);
 
 // add javascript to header
+echo "\n\t\t<!-- SFBrowser init -->\n";
 echo "\t\t<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"".SFB_PATH."css/sfbrowser.css\" />\n";
 echo "\t\t<script type=\"text/javascript\" src=\"".SFB_PATH."array.js\"></script>\n";
 echo "\t\t<script type=\"text/javascript\" src=\"".SFB_PATH."jquery.tinysort.min.js\"></script>\n";
 echo "\t\t<script type=\"text/javascript\" src=\"".SFB_PATH."jquery.sfbrowser.js\"></script>\n";
 echo "\t\t<script type=\"text/javascript\" src=\"".SFB_PATH."lang/".SFB_LANG.".js\"></script>\n";
-echo "\t\t<script type=\"text/javascript\">\n\t\t\t<!--\n";
+echo "\t\t<script type=\"text/javascript\"><!--\n";
 echo "\t\t\t$.sfbrowser.defaults.connector = \"php\";\n";
 echo "\t\t\t$.sfbrowser.defaults.sfbpath = \"".SFB_PATH."\";\n";
 echo "\t\t\t$.sfbrowser.defaults.base = \"".SFB_BASE."\";\n";
@@ -28,10 +29,16 @@ echo "\t\t\t$.sfbrowser.defaults.deny = (\"".SFB_DENY."\").split(\",\");\n";
 echo "\t\t\t$.sfbrowser.defaults.icons = ['".implode("','",$aIcons)."'];\n";
 echo "\t\t\t$.sfbrowser.defaults.browser = \"".$sSfbHtml."\";\n";
 echo "\t\t\t$.sfbrowser.defaults.plugins = ['".implode("','",$aPlugins)."'];\n";
-echo "\t\t\t-->\n\t\t</script>\n";
+echo "\t\t--></script>\n";
 
+echo "\t\t<!-- SFBrowser plugins -->\n";
 foreach ($aPlugins as $sPlugin) {
-	include(SFB_PATH."plugins/".$sPlugin."/connectors/php/config.php");
-	include(SFB_PATH."plugins/".$sPlugin."/connectors/php/init.php");
+	$sConf = SFB_PATH."plugins/".$sPlugin."/connectors/php/config.php";
+	$sInit = SFB_PATH."plugins/".$sPlugin."/connectors/php/init.php";
+	$sPlug = SFB_PATH."plugins/".$sPlugin."/jquery.sfbrowser.".$sPlugin.".js";
+	if (file_exists($sConf)) include($sConf);
+	if (file_exists($sInit)) include($sInit);
+	else if (file_exists($sPlug)) echo "\t\t<script type=\"text/javascript\" src=\"".$sPlug."\"></script>\n";
 }
+echo "\t\t<!-- SFBrowser end -->\n\n";
 ?>

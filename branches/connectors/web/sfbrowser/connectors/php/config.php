@@ -8,7 +8,7 @@ define("SFB_DENY",			"php,php3,phtml");	// forbidden file extensions
 
 define("SFB_ERROR_RETURN",	"<html><head><meta http-equiv=\"Refresh\" content=\"0;URL=http:/\" /></head></html>");
 
-define("SFB_PLUGINS",		"imageresize");
+define("SFB_PLUGINS",		"imageresize,filetree");
 
 define("SFB_DEBUG",			false);
 ?>

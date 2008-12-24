@@ -569,9 +569,11 @@
 	// rename
 	function renameSelected(e) {
 		var oFile = file(e);
-		var mStd = oFile.tr.find("td:eq(0)");
-		mStd.html("");
-		$("<input type=\"text\" value=\""+oFile.file+"\" />").appendTo(mStd).click(stopEvt).dblclick(stopEvt).mousedown(stopEvt);
+		if (oFile) {
+			var mStd = oFile.tr.find("td:eq(0)");
+			mStd.html("");
+			$("<input type=\"text\" value=\""+oFile.file+"\" />").appendTo(mStd).click(stopEvt).dblclick(stopEvt).mousedown(stopEvt);
+		}
 	}
 	function checkRename() {
 		var aRenamed = $("#sfbrowser tbody>tr>td>input");
@@ -710,7 +712,7 @@
 		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
 		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
 		$.each( oSettings.plugins, function(i,sPlugin) {
-			if ($.sfbrowser[sPlugin].resize) $.sfbrowser[sPlugin].resize(iWdt,iHgt);
+			if ($.sfbrowser[sPlugin].resizeWindow) $.sfbrowser[sPlugin].resizeWindow(iWdt,iHgt);
 		});
 	}
 //	// reposition

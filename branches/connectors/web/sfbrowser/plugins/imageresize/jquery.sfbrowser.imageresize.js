@@ -76,7 +76,7 @@
 		}
 	});
 	$.extend($.sfbrowser.imageresize, {
-		resize: function(iWdt,iHgt) {
+		resizeWindow: function(iWdt,iHgt) {
 			if (oFile) {
 				var iMaxW = $("#fbwin").width()-$("form#sfbsize").width()-20;
 				var iMaxH = $("#fbwin").height()-70;
@@ -98,7 +98,7 @@
 		iCrpXs = iCrpYs = iCrpX = iCrpY = 0;
 		$("#sfbimgresize>div.sfbheader>h3").text(p.oSettings.lang.imgResize+": "+oFile.file);
 		$("div#sfbrsimg>img").attr("src",p.oSettings.sfbpath+p.aPath.join("")+oFile.file);
-		$.sfbrowser.imageresize.resize();
+		$.sfbrowser.imageresize.resizeWindow();
 	}
 	// dragging
 	function dragStart(e) {
