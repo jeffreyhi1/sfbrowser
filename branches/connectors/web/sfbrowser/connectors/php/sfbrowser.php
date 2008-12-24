@@ -213,17 +213,20 @@ switch ($sAction) {
 	break;
 
 	case "sui":// file force download
-		ob_start();
-		$sType = "application/octet-stream";
-		header("Cache-Control: public, must-revalidate");
-		header("Pragma: hack");
-		header("Content-Type: " . $sSFile);
-		header("Content-Length: " .(string)(filesize($sSFile)) );
-		header('Content-Disposition: attachment; filename="'.array_pop(explode("/",$sSFile)).'"');
-		header("Content-Transfer-Encoding: binary\n");
-		ob_end_clean();
-		readfile($sSFile);
-		exit();
+		$sZeFile = $sConnBse.$sSFile;
+		if (file_exists($sZeFile)) {
+			ob_start();
+			$sType = "application/octet-stream";
+			header("Cache-Control: public, must-revalidate");
+			header("Pragma: hack");
+			header("Content-Type: " . $sSFile);
+			header("Content-Length: " .(string)(filesize($sZeFile)) );
+			header('Content-Disposition: attachment; filename="'.array_pop(explode("/",$sZeFile)).'"');
+			header("Content-Transfer-Encoding: binary\n");
+			ob_end_clean();
+			readfile($sZeFile);
+			exit();
+		}
 	break;
 
 	case "mizu":// read txt file contents

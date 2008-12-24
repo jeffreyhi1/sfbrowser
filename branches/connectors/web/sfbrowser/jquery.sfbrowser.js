@@ -32,7 +32,7 @@
 *	- folder creation
 *   - multiple files selection (not in IE for now)
 *	- inline or overlay window
-*	- window resizing
+*	- window resizing and dragging
 *
 * how it works
 *   - sfbrowser returns a list of file objects.
@@ -76,9 +76,11 @@
 *	- added: server side script connectors (localisation is now js only)
 *	- added: interface for plugins
 *	- added: image resize/cropping plugin
+*	- added: loading feedback for folder opening
+*	- added: window dragging and resizing
 *	- changed: php security
 *	- changed: cleaned up some of code
-*	- added: loading feedback for folder opening
+*	- fixed: doubleclick vs rename
 *
 */
 ;(function($) {
@@ -136,16 +138,10 @@
 		sfbrowser: function(_settings) {
 			oSettings = $.extend({}, $.sfbrowser.defaults, _settings);
 			oSettings.conn = oSettings.sfbpath+"connectors/"+oSettings.connector+"/sfbrowser."+oSettings.connector;
-			//oContents = {};
 			aSort = [];
 			bHasImgs = oSettings.allow.length===0||oSettings.img.copy().concat(oSettings.allow).unique().length<(oSettings.allow.length+oSettings.img.length);
 			aPath = [];
 			sFolder = oSettings.base+oSettings.folder;
-			//
-			//
-//			trace("$.sfbrowser.defaults.lang: "+$.sfbrowser.defaults.lang.sfb);
-//			trace("oSettings.lang: "+oSettings.lang);
-//			trace("oSettings.lang.sfb: "+oSettings.lang.sfb);
 			//
 			//
 			bOverlay = oSettings.inline=="body";
@@ -212,9 +208,8 @@
 			addContextItem("filedelete",	oSettings.lang.del,			function(){$("#sfbrowser tbody>tr.selected:first a.filedelete").trigger("click")});
 			//
 			// functions ($$move to localisation)
-			if (bOverlay) $(window).bind("resize", reposition);
+			//if (bOverlay) $(window).bind("resize", reposition); // $$OBSOLETE?
 			// top menu
-			//mFB.find("ul#sfbtopmenu>li>a.cancelfb").click(		function(){alert("close")} );
 			mFB.find(".cancelfb").click(		closeSFB );
 			mFB.find("#fileToUpload").change(	fileUpload);
 			mFB.find(".newfolder").click(		addFolder );
@@ -227,14 +222,22 @@
 			mFB.click(function(){
 				$("#sfbcontext").slideUp("fast");
 			});
-			// resizer
-			mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(){
-				$("body").mousemove(resize);
-				return false;
-			});
-			$("body").mouseup(function(){
-				$("body").unbind("mousemove",resize);
-			});
+			if (bOverlay) { // resize and move window
+				mFB.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(){
+					$("body").mousemove(moveWindow);
+				});
+				$("body").mouseup(function(){
+					$("body").unbind("mousemove",moveWindow);
+				});
+				mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(){
+					$("body").mousemove(resizeWindow);
+				});
+				$("body").mouseup(function(){
+					$("body").unbind("mousemove",resizeWindow);
+				});
+			} else {
+				mFB.find("div#resizer").remove();
+			}
 			//
 			// plugins
 			var oThis = {
@@ -287,7 +290,12 @@
 				return false;
 			});
 			
-			if (bOverlay) reposition();
+			if (bOverlay) {
+				//reposition(); $$OBSOLETE??
+				var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
+				var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
+				$("#fbwin").css({ top:fFbX, left:fFbY });
+			}
 			
 			openSFB();
 		}
@@ -370,43 +378,43 @@
 		if (!bUFolder) sTr += "	<a onclick=\"\" class=\"sfbbutton filedelete\" title=\""+oSettings.lang.del+"\">&nbsp;<span>"+oSettings.lang.del+"</span></a>";
 		sTr += "</td>";
 		sTr += "</tr>";
+		// 
 		var mTr = $(sTr).prependTo("#sfbrowser tbody");
 		obj.tr = mTr;
 		mTr.find("a.filedelete").click(deleteFile);
+		mTr.find("a.preview").click(showFile);
 		//mTr.find("td:last").css({textAlign:"right"}); // IE fix
 		mTr.folder = bFolder||bUFolder;
-		mTr.bind("mouseover", function() {
+		mTr.mouseover( function() {
 			mTr.addClass("over");
-		}).bind("mouseout", function() {
+		}).mouseout( function() {
 			mTr.removeClass("over");
-		}).bind("dblclick", function(e) {
-			chooseFile($(this));
-			e.stopPropagation();
 		}).mousedown( function(e) {
-			mTr.mouseup( function(e) {clickTr(this,e)} );
-		});
+			mTr.mouseup( clickTr );
+		}).dblclick( function(e) {
+			chooseFile($(this));
+		})//.find("a.preview").click( function(e) {
+//			//trace(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file);
+//			window.open(oSettings.conn+"?a=sui&file="+aPath.join("")+oFile.file,"_blank");
+//		});
 		mTr[0].oncontextmenu = function() {
 			return false;
 		};
-		mTr.find("a.preview").bind("click", function(el) {
-			//trace(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file);
-			window.open(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file,"_blank");
-		});
+//		mTr
 		return mTr;
 	}
 	// clickTr: left- or rightclick table row
-	function clickTr(el,e) {
-		var mTr = $(el);
+	function clickTr(e) {
+		var mTr = $(e.currentTarget);
 		mTr.unbind("mouseup");
-		var oFile = file(el);
+		var oFile = file(mTr);
 		var bFolder = oFile.mime=="folder";
 		var bUFolder = oFile.mime=="folderup";
 		var sFile = oFile.file;
 		var bRight = e.button==2;
 		var mCntx = $("#sfbcontext");
 		//
-		if (bRight) {
-			//trace("rightclick todo: create context menu: choose, rename, download, delete");
+		if (bRight) { // show context menu
 			mCntx.slideUp("fast",function(){
 				mCntx.css({left:e.clientX+1,top:e.clientY+1});
 				// check context contents
@@ -423,7 +431,7 @@
 				//
 				mCntx.slideDown("fast");
 			});
-		} else {
+		} else { // hide context menu
 			mCntx.slideUp("fast");
 		}
 		//
@@ -431,17 +439,9 @@
 		if (!oSettings.keys[17]) $("#sfbrowser tbody>tr").each(function(){if (mTr[0]!=$(this)[0]) $(this).removeClass("selected")});
 		//
 		// check if something is being renamed
-//		var mTrRn = checkRename();
-//		if (mTrRn) {
-//			trace("checkRename: "+file(mTrRn)==file(mTr));
-//		}
-//		if ((mTrRn||file(mTrRn)!=file(mTr))&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]) {
-//		var mTrInp = $("#sfbrowser tbody>tr:has(td>input)");
-//		var bTrIsInp = file(mTrInp)==oFile;
-//		trace("mTr.find(\"td>input\"): "+!!mTr.find("td>input"));		
-
 		if (checkRename()[0]!=mTr[0]&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]) {
-			renameSelected(mTr);
+			// rename with timeout to enable doubleclick (input field stops propagation)
+			setTimeout(renameSelected,500,mTr);
 		} else {
 			if (oSettings.keys[17]&&!bRight) mTr.toggleClass("selected");
 			else mTr.addClass("selected");
@@ -531,6 +531,13 @@
 				}
 			}
 		}});
+	}
+	// show
+	function showFile(e) {
+		var mTr = $(e.target).parent().parent();
+		var oFile = file(mTr);
+		//trace(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file);
+		window.open(oSettings.conn+"?a=sui&file="+aPath.join("")+oFile.file,"_blank");
 	}
 	// delete
 	function deleteFile(e) {
@@ -686,10 +693,17 @@
 	function clearObject(o) {
 		for (var sProp in o) delete o[sProp];
 	}
-	// resize
-	function resize(e) {
-		var mElm = $("div#resizer");
-		var mPrn = mElm.parent();
+	// moveWindow
+	function moveWindow(e) {
+		var mHd = $(".sfbheader>h3");
+		var mPrn = $("#fbbg");
+		var iWdt = e.pageX-mPrn.offset().left;// + mHd.offset().left;
+		var iHgt = e.pageY-mPrn.offset().top;//  + mHd.offset().top;
+		$("#sfbrowser div#fbwin").css({left:iWdt+"px",top:iHgt+"px"});
+	}
+	// resizeWindow
+	function resizeWindow(e) {
+		var mPrn = $("#fbwin");
 		var iWdt = e.pageX-mPrn.offset().left;
 		var iHgt = e.pageY-mPrn.offset().top;
 		$("#sfbrowser div#fbwin").css({width:iWdt+"px",height:iHgt+"px"});
@@ -699,19 +713,19 @@
 			if ($.sfbrowser[sPlugin].resize) $.sfbrowser[sPlugin].resize(iWdt,iHgt);
 		});
 	}
-	// reposition
-	function reposition() {
-		var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
-		var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
-		$("#fbwin").css({
-			 top:  fFbX
-			,left: fFbY
-		});
-		$("#sfbcontext").slideUp("fast");
-		$.each( oSettings.plugins, function(i,sPlugin) {
-			if ($.sfbrowser[sPlugin].reposition) $.sfbrowser[sPlugin].reposition(fFbX,fFbY);
-		});
-	}
+//	// reposition
+//	function reposition() {
+//		var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
+//		var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
+//		$("#fbwin").css({
+//			 top:  fFbX
+//			,left: fFbY
+//		});
+//		$("#sfbcontext").slideUp("fast");
+//		$.each( oSettings.plugins, function(i,sPlugin) {
+//			if ($.sfbrowser[sPlugin].reposition) $.sfbrowser[sPlugin].reposition(fFbX,fFbY);
+//		});
+//	}
 	// is numeric
 	function isNum(n) {
 		return (parseFloat(n)+"")==n;
