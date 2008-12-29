@@ -28,17 +28,22 @@ echo "\t\t\t$.sfbrowser.defaults.preview = ".PREVIEW_BYTES.";\n";
 echo "\t\t\t$.sfbrowser.defaults.deny = (\"".SFB_DENY."\").split(\",\");\n";
 echo "\t\t\t$.sfbrowser.defaults.icons = ['".implode("','",$aIcons)."'];\n";
 echo "\t\t\t$.sfbrowser.defaults.browser = \"".$sSfbHtml."\";\n";
-echo "\t\t\t$.sfbrowser.defaults.plugins = ['".implode("','",$aPlugins)."'];\n";
+if (SFB_PLUGINS!="") echo "\t\t\t$.sfbrowser.defaults.plugins = ['".implode("','",$aPlugins)."'];\n";
 echo "\t\t--></script>\n";
 
 echo "\t\t<!-- SFBrowser plugins -->\n";
 foreach ($aPlugins as $sPlugin) {
 	$sConf = SFB_PATH."plugins/".$sPlugin."/connectors/php/config.php";
 	$sInit = SFB_PATH."plugins/".$sPlugin."/connectors/php/init.php";
-	$sPlug = SFB_PATH."plugins/".$sPlugin."/jquery.sfbrowser.".$sPlugin.".js";
 	if (file_exists($sConf)) include($sConf);
-	if (file_exists($sInit)) include($sInit);
-	else if (file_exists($sPlug)) echo "\t\t<script type=\"text/javascript\" src=\"".$sPlug."\"></script>\n";
+	if (file_exists($sInit)) {
+		include($sInit);
+	} else {
+		$sPlug = SFB_PATH."plugins/".$sPlugin."/jquery.sfbrowser.".$sPlugin.".js";
+		if (file_exists($sPlug)) echo "\t\t<script type=\"text/javascript\" src=\"".$sPlug."\"></script>\n";
+		$sCsss = SFB_PATH."plugins/".$sPlugin."/css/".$sPlugin.".css";
+		if (file_exists($sCsss)) echo "\t\t<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"".$sCsss."\" />\n";
+	}
 }
 echo "\t\t<!-- SFBrowser end -->\n\n";
 ?>

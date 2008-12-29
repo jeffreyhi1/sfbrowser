@@ -51,6 +51,7 @@
 *	- Spanish translation: Juan Razeto
 *
 * todo:
+*	- add: cookie remembers settings
 *	- add: view option: new or custom css files
 *	- code: check what timeout code in upload code really does
 *	- add: image preview: no-scaling on smaller images
@@ -67,7 +68,7 @@
 *	- add: drag and drop files to folders
 *	- new: folder treeview (plugin)
 *   - new: create ascii file
-*   - new: edit ascii file (plugin)
+*   - new: edit ascii file (plugin (fck?))
 *   - maybe: drag sfbrowser
 *   - maybe: copy used functions (copy, unique and indexof) from array.js
 *	- maybe: thumbnail view
@@ -81,16 +82,18 @@
 *	- changed: php security
 *	- changed: cleaned up some of code
 *	- fixed: doubleclick vs rename
+*	- added: folder contents caching
 *
 */
 ;(function($) {
 	// private variables
 	var oSettings = {};
-	var oContents = {};
 	var aSort = [];
 	var iSort = 0;
 	var bHasImgs = false;
+	//
 	var aPath = [];
+	var oTree = {};
 	//
 	var bOverlay = false;
 	//
@@ -124,6 +127,7 @@
 			,preview:	600						// amount of bytes for ascii preview
 			,connector:	"php"					// connector file type (php)
 			,lang:		{}						// language object
+			,plugins:	[]						// plugins
 		}
 		,addLang: function(oLang) {
 			for (var sId in oLang) $.sfbrowser.defaults.lang[sId] = oLang[sId];
@@ -223,17 +227,25 @@
 				$("#sfbcontext").slideUp("fast");
 			});
 			if (bOverlay) { // resize and move window
-				mFB.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(){
-					$("body").mousemove(moveWindow);
+				mFB.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(e){
+					var iXo = e.pageX-$(e.target).offset().left;
+					var iYo = e.pageY-$(e.target).offset().top;
+					$("body").mousemove(function(e){
+						moveWindow(e,iXo,iYo);
+					});
 				});
 				$("body").mouseup(function(){
-					$("body").unbind("mousemove",moveWindow);
+					$("body").unbind("mousemove");
 				});
-				mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(){
-					$("body").mousemove(resizeWindow);
+				mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(e){
+					var iXo = e.pageX-$(e.target).offset().left;
+					var iYo = e.pageY-$(e.target).offset().top;
+					$("body").mousemove(function(e){
+						resizeWindow(e,iXo,iYo);
+					});
 				});
 				$("body").mouseup(function(){
-					$("body").unbind("mousemove",resizeWindow);
+					$("body").unbind("mousemove");
 				});
 			} else {
 				mFB.find("div#resizer").remove();
@@ -243,19 +255,22 @@
 			var oThis = {
 				// functions
 				 trace:				trace
+				,openDir:			openDir
 				,closeSFB:			closeSFB
 				,addContextItem:	addContextItem
 				,file:				file
 				,lang:				lang
 				// variables
+				,aPath:		aPath
 				,bOverlay:	bOverlay
 				,oSettings:	oSettings
-				,oContents:	oContents
-				,aPath:		aPath
+				,oTree:		oTree
 				,mFB:		mFB
 			};
+			trace("plugins:");
 			$.each( oSettings.plugins, function(i,sPlugin) {
 				$.sfbrowser[sPlugin](oThis);
+				trace("\t"+sPlugin);
 			});
 			//
 			// start
@@ -335,34 +350,36 @@
 		mFB.find("thead>tr>th>span").each(function(i,o){$(this).css({backgroundPosition:(i==iSort?5:-9)+"px "+(aSort[iSort]=="asc"?4:-96)+"px"})});
 	}
 	// fill list
-	function fillList(data,status) {
-		trace("sfb fillList");
-		if (typeof(data.error)!="undefined") {
-			if (data.error!="") {
-				trace("sfb error: "+lang(data.error));
-				alert(lang(data.error));
-			} else {
-				trace(lang(data.msg));
-				$("#sfbrowser tbody").children().remove();
-				$("#fbpreview").html("");
-				clearObject(oContents);//oContents = {};
-				aSort = [];
-				$.each( data.data, function(i,oFile) {
-					// todo: logical operators could be better
-					var bDir = (oFile.mime=="folder"||oFile.mime=="folderup");
-					if ((oSettings.allow.indexOf(oFile.mime)!=-1||oSettings.allow.length===0)&&oSettings.deny.indexOf(oFile.mime)==-1||bDir) {
-						if ((bDir&&oSettings.dirs)||!bDir) listAdd(oFile);
-					}
-				});
-				if (aPath.length>1) listAdd({file:"..",mime:"folderup",rsize:0,size:"-",time:0,date:""});
-				$("#sfbrowser thead>tr>th:eq(0)").trigger("click");
+	function fillList(contents) {
+		trace("sfb fillList "+aPath);
+		$("#sfbrowser tbody").children().remove();
+		$("#fbpreview").html("");
+		aSort = [];
+		//
+		var oCTree = getPath();
+		oCTree.filled = true;
+		//
+		$.each( contents, function(i,oFile) {
+			// todo: logical operators could be better
+			var bDir = (oFile.mime=="folder"||oFile.mime=="folderup");
+			if ((oSettings.allow.indexOf(oFile.mime)!=-1||oSettings.allow.length===0)&&oSettings.deny.indexOf(oFile.mime)==-1||bDir) {
+				if ((bDir&&oSettings.dirs)||!bDir) listAdd(oFile);
 			}
-		}
+		});
+		if (aPath.length>1&&!oCTree.contents[".."]) listAdd({file:"..",mime:"folderup",rsize:0,size:"-",time:0,date:""});
+		$("#sfbrowser thead>tr>th:eq(0)").trigger("click");
+		//
+		// plugin
+		$.each( oSettings.plugins, function(i,sPlugin) {
+			if ($.sfbrowser[sPlugin].fillList) $.sfbrowser[sPlugin].fillList(contents);
+		});
 	}
 	// add item to list
 	function listAdd(obj) {
 		//trace("listAdd: "+obj.file);
-		oContents[obj.file] = obj;
+		//
+		getPath().contents[obj.file] = obj;
+		//
 		var bFolder = obj.mime=="folder";
 		var bUFolder = obj.mime=="folderup";
 		var sMime = bFolder||bUFolder?oSettings.lang.folder:obj.mime;
@@ -400,6 +417,10 @@
 		mTr[0].oncontextmenu = function() {
 			return false;
 		};
+		// plugin
+		$.each( oSettings.plugins, function(i,sPlugin) {
+			if ($.sfbrowser[sPlugin].listAdd) $.sfbrowser[sPlugin].listAdd(obj);
+		});
 //		mTr
 		return mTr;
 	}
@@ -473,13 +494,13 @@
 		var aSelected = $("#sfbrowser tbody>tr.selected");
 		var aSelect = [];
 		// find selected trs and possible parsed element
-		aSelected.each(function(){aSelect.push(oContents[$(this).attr("id")])});
-		if (el&&el.find) aSelect.push(oContents[$(el).attr("id")]);
+		aSelected.each(function(){aSelect.push(file(this))});
+		if (el&&el.find) aSelect.push(file(el));
 		// check if selection contains directory
 		for (var i=0;i<aSelect.length;i++) {
 			var oFile = aSelect[i];
 			if (oFile.mime=="folder") {
-				openDir(oFile.file+"/");
+				openDir(oFile.file);
 				return false;
 			} else if (oFile.mime=="folderup") {
 				openDir();
@@ -508,11 +529,34 @@
 	//
 	// open directory
 	function openDir(dir) {
-		mFB.find("#filesDetails>tbody").html(mTrLoading);
 		trace("sfb openDir "+dir+" to "+oSettings.conn);
-		if (dir) aPath.push(dir);
-		else aPath.pop();
-		$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:fillList});
+		if (dir) dir = String(dir+"/").replace(/(\/+)/gi,"/");
+		if (!dir||aPath[aPath.length-1]!=dir) {
+			mFB.find("#filesDetails>tbody").html(mTrLoading);
+			if (dir)	aPath.push(dir);
+			else		aPath.pop();
+			//
+			var oCTree = getPath();
+			if (oCTree.filled) { // open cached directory
+				fillList(oCTree.contents);
+			} else { // open directory with php callback
+				$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:function(data, status){
+					if (typeof(data.error)!="undefined") {
+						if (data.error!="") {
+							trace(lang(data.error));
+							alert(lang(data.error));
+						} else {
+							trace(lang(data.msg));
+							fillList(data.data);
+						}
+					}
+				}});
+			}
+			// plugin
+			$.each( oSettings.plugins, function(i,sPlugin) {
+				if ($.sfbrowser[sPlugin].openDir) $.sfbrowser[sPlugin].openDir(dir);
+			});
+		}
 	}
 	// duplicate file
 	function duplicateFile(el) {
@@ -558,7 +602,9 @@
 					} else {
 						trace(lang(data.msg));
 						$("#fbpreview").html("");
-						delete oContents[oFile.file];
+						//
+						delete getPath().contents[oFile.file];
+						//
 						mTr.remove();
 					}
 				}
@@ -581,7 +627,9 @@
 			var mInput = $(aRenamed[0]);
 			var mTd = mInput.parent();
 			var mTr = mTd.parent();
-			var oFile = oContents[mTr.attr("id")];
+			//
+			var oFile = file(mTr);
+			//
 			var sFile = oFile.file;
 			var sNFile = mInput.val();
 
@@ -670,7 +718,16 @@
 	// get file object from tr
 	function file(tr) {
 		if (!tr) tr = $("#sfbrowser tbody>tr.selected:first");
-		return oContents[$(tr).attr("id")];
+		return getPath().contents[$(tr).attr("id")];
+	}
+	// find folder in oTree
+	function getPath() {
+		var oCTree = oTree;
+		$.each(aPath,function(i,sPath){
+			if (!oCTree[sPath]) oCTree[sPath] = {contents:{},filled:false};
+			oCTree = oCTree[sPath];
+		});
+		return oCTree;
 	}
 	// addContextItem
 	function addContextItem(className,title,fnc,after) {
@@ -696,18 +753,18 @@
 		for (var sProp in o) delete o[sProp];
 	}
 	// moveWindow
-	function moveWindow(e) {
+	function moveWindow(e,xo,yo) {
 		var mHd = $(".sfbheader>h3");
 		var mPrn = $("#fbbg");
-		var iWdt = e.pageX-mPrn.offset().left;// + mHd.offset().left;
-		var iHgt = e.pageY-mPrn.offset().top;//  + mHd.offset().top;
+		var iWdt = e.pageX-xo-mPrn.offset().left;
+		var iHgt = e.pageY-yo-mPrn.offset().top;
 		$("#sfbrowser div#fbwin").css({left:iWdt+"px",top:iHgt+"px"});
 	}
 	// resizeWindow
-	function resizeWindow(e) {
+	function resizeWindow(e,xo,yo) {
 		var mPrn = $("#fbwin");
-		var iWdt = e.pageX-mPrn.offset().left;
-		var iHgt = e.pageY-mPrn.offset().top;
+		var iWdt = Math.max(331,e.pageX+xo-mPrn.offset().left);
+		var iHgt = Math.max(275,e.pageY+yo-mPrn.offset().top);
 		$("#sfbrowser div#fbwin").css({width:iWdt+"px",height:iHgt+"px"});
 		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
 		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
@@ -736,7 +793,7 @@
 	function trace(o) {
 		if (window.console&&window.console.log) {
 			if (typeof(o)=="string")	window.console.log(o);
-			else						for (var prop in o) window.console.log(prop+": "+o[prop]);
+			else						for (var prop in o) window.console.log(prop+":\t"+String(o[prop]).split("\n")[0]);
 		}
 	}
 	// stop event propagation

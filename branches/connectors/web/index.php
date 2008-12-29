@@ -32,9 +32,9 @@
 					$(this).attr("id",$(this).text());
 				});
 			});
-//			$(window).load(function() {
-//				$.fn.sfbrowser();
-//			});
+			$(window).load(function() {
+				$.fn.sfbrowser();
+			});
 			-->
 		</script>
 	</head>
