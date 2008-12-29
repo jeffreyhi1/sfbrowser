@@ -1,13 +1,24 @@
 #fbtable {
 	width: 60%;
+	border-left-width: 0px !important;
+}
+#divider {
+	width: 3px;
+	float:	left;
+	border-width: 0px 2px 0px 2px;
+	border-style: solid;
+	border-color: #fff #888 #888 #fff;
+	cursor: move;
 }
 #filetree {
 	width: 40%;
 	border:	2px;
 	float:	left;
-	border:	2px solid #888;
+	border-width: 2px 0px 2px 2px;
+	border-style: solid;
 	border-color: #888 #fff #fff #888;
 	background-color: #fff;
+	overflow: hidden;
 }
 
 	#filetree div {
@@ -22,22 +33,30 @@
 	#filetree ul {
 		width: 100%;
 		list-style: none;
-		margin: 0px;
 		padding: 0px;
+		margin: 0px 0px 0px 16px;
+	}
+	#filetree>ul {
+		margin: 0px;
 	}
 		#filetree ul li {
-			/*height: 26px;*/
 			line-height: 26px;
-			background: transparent url(../../../css/folder.gif) 1px 4px no-repeat;
-			margin: 0px 0px 0px 0px;
-			padding: 0px 0px 0px 20px;
+			margin: 0px;
+			padding: 0px;
 		}
 		#filetree ul li strong {
+			display: block;
+			height: 26px;
 			font-weight: normal;
+			line-height: 26px;
+			padding: 0px 0px 0px 20px;
+			background: transparent url(../../../css/folder.gif) 1px 4px no-repeat;
+			cursor: hand;
+			cursor: pointer;
 		}
 		#filetree ul li strong.over {
 			background-color: #def;
 		}
 		#filetree ul li strong.selected {
-			background-color: #adf;
+			background: #adf url(../../../css/folder_open.gif) 1px 4px no-repeat;
 		}

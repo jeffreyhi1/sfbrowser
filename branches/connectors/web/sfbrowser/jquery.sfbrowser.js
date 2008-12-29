@@ -102,6 +102,14 @@
 	//
 	var mTrLoading;
 	//
+	var iBrW = $(window).width();
+	var iBrH = $(window).height();
+	var iWinMaxW = 331;
+	var iWinMaxH = 275;
+	//
+	// display
+	var mWin;
+	//
 	// default settings
 	$.sfbrowser = {
 		 id: "SFBrowser"
@@ -116,6 +124,11 @@
 			,resize:	null					// resize images after upload: array(width,height) or null
 			,inline:	"body"					// a JQuery selector for inline browser
 			,fixed:		false					// keep the browser open after selection (only works when inline is not "body")
+			,cookie:	!false					// use a cookie to remeber path, x, y, w, h
+			,x:			null					// x position, centered if left null
+			,y:			null					// y position, centered if left null
+			,w:			640						// width
+			,h:			480						// height
 			// basic control (normally no need to change)
 			,img:		["gif","jpg","jpeg","png"]
 			,ascii:		["txt","xml","html","htm","eml","ffcmd","js","as","php","css","java","cpp","pl","log"]
@@ -142,12 +155,30 @@
 		sfbrowser: function(_settings) {
 			oSettings = $.extend({}, $.sfbrowser.defaults, _settings);
 			oSettings.conn = oSettings.sfbpath+"connectors/"+oSettings.connector+"/sfbrowser."+oSettings.connector;
+			//
+			// cookies
+			var bCookie = false;
+			if (!oSettings.cookie) {
+				var sCookie = readCookie($.sfbrowser.id);
+				if (sCookie) {
+					bCookie = true;
+					var oCookie = eval("("+sCookie+")");
+					oSettings.x = oCookie.x;
+					oSettings.y = oCookie.y;
+					oSettings.w = oCookie.w;
+					oSettings.h = oCookie.h;
+//					alert("oSettings.x: "+oSettings.x+" "+oSettings.y+" "+oSettings.w+" "+oSettings.h);
+					//alert("scroll: "+$(document).scrollLeft()+" "+$(document).scrollTop());
+					//alert("scroll: "+$(window).scrollLeft()+" "+$(window).scrollTop());
+				}
+			} else {
+				eraseCookie($.sfbrowser.id);
+			}
+			// start vars
 			aSort = [];
 			bHasImgs = oSettings.allow.length===0||oSettings.img.copy().concat(oSettings.allow).unique().length<(oSettings.allow.length+oSettings.img.length);
 			aPath = [];
 			sFolder = oSettings.base+oSettings.folder;
-			//
-			//
 			bOverlay = oSettings.inline=="body";
 			if (bOverlay) oSettings.fixed = false;
 			//
@@ -175,6 +206,8 @@
 			//
 			// file browser
 			mFB = $(oSettings.browser);
+			mWin = mFB.find("#fbwin");
+			//
 			mFB.find("div.sfbheader>h3").text(oSettings.title==""?oSettings.lang.sfb:oSettings.title);
 			mFB.find("div#loadbar>span").text(oSettings.lang.loading);
 			if (oSettings.dirs) mFB.find("ul#sfbtopmenu>li>a.newfolder").attr("title",oSettings.lang.newfolder).find("span").text(oSettings.lang.newfolder);
@@ -201,7 +234,7 @@
 				trace("sfb inline");
 				mFB.css(					{position:"relative",width:"auto",heigth:"auto"});
 				mFB.find("#fbbg").remove();
-				mFB.find("#fbwin").css(		{position:"relative"});
+				mWin.css(		{position:"relative"});
 			}
 			//
 			// context localize and functions
@@ -212,7 +245,6 @@
 			addContextItem("filedelete",	oSettings.lang.del,			function(){$("#sfbrowser tbody>tr.selected:first a.filedelete").trigger("click")});
 			//
 			// functions ($$move to localisation)
-			//if (bOverlay) $(window).bind("resize", reposition); // $$OBSOLETE?
 			// top menu
 			mFB.find(".cancelfb").click(		closeSFB );
 			mFB.find("#fileToUpload").change(	fileUpload);
@@ -227,15 +259,17 @@
 				$("#sfbcontext").slideUp("fast");
 			});
 			if (bOverlay) { // resize and move window
+				$(window).bind("resize", resizeBrowser);
 				mFB.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(e){
 					var iXo = e.pageX-$(e.target).offset().left;
 					var iYo = e.pageY-$(e.target).offset().top;
 					$("body").mousemove(function(e){
 						moveWindow(e,iXo,iYo);
 					});
-				});
+				});//.select(function(){return false;})
 				$("body").mouseup(function(){
 					$("body").unbind("mousemove");
+					setSfbCookie();
 				});
 				mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(e){
 					var iXo = e.pageX-$(e.target).offset().left;
@@ -246,35 +280,11 @@
 				});
 				$("body").mouseup(function(){
 					$("body").unbind("mousemove");
+					setSfbCookie();
 				});
 			} else {
 				mFB.find("div#resizer").remove();
 			}
-			//
-			// plugins
-			var oThis = {
-				// functions
-				 trace:				trace
-				,openDir:			openDir
-				,closeSFB:			closeSFB
-				,addContextItem:	addContextItem
-				,file:				file
-				,lang:				lang
-				// variables
-				,aPath:		aPath
-				,bOverlay:	bOverlay
-				,oSettings:	oSettings
-				,oTree:		oTree
-				,mFB:		mFB
-			};
-			trace("plugins:");
-			$.each( oSettings.plugins, function(i,sPlugin) {
-				$.sfbrowser[sPlugin](oThis);
-				trace("\t"+sPlugin);
-			});
-			//
-			// start
-			openDir(sFolder);
 			//
 			// keys
 			// ESC : 27
@@ -304,15 +314,41 @@
 				oSettings.keys[e.keyCode] = false;
 				return false;
 			});
-			
+			//			
 			if (bOverlay) {
-				//reposition(); $$OBSOLETE??
-				var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
-				var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
-				$("#fbwin").css({ top:fFbX, left:fFbY });
+				mWin.width(oSettings.w);
+				mWin.height(oSettings.h);
+				if (oSettings.x==null) oSettings.x = Math.round($(window).width()/2-mWin.width()/2);
+				if (oSettings.y==null) oSettings.y = Math.round($(window).height()/2-mWin.height()/2);
+				mWin.css({ top:oSettings.y, left:oSettings.x });
 			}
-			
+			//
+			// plugins
+			var oThis = {
+				// functions
+				 trace:				trace
+				,openDir:			openDir
+				,closeSFB:			closeSFB
+				,addContextItem:	addContextItem
+				,file:				file
+				,lang:				lang
+				// variables
+				,aPath:		aPath
+				,bOverlay:	bOverlay
+				,oSettings:	oSettings
+				,oTree:		oTree
+				,mFB:		mFB
+			};
+			trace("plugins:");
+			$.each( oSettings.plugins, function(i,sPlugin) {
+				$.sfbrowser[sPlugin](oThis);
+				trace("\t"+sPlugin);
+			});
+			//
+			// start
+			openDir(sFolder);
 			openSFB();
+			if (oSettings.cookie&&!bCookie) setSfbCookie();
 		}
 	});
 	
@@ -322,10 +358,8 @@
 	function openSFB() {
 		trace("sfb open");
 		// animation
-		mFB.find("#fbbg").css({display:"none"});
-		mFB.find("#fbbg").slideDown();
-		mFB.find("#fbwin").css({display:"none"});
-		mFB.find("#fbwin").slideDown();
+		mFB.find("#fbbg").css({display:"none"}).slideDown();
+		mWin.css({display:"none"}).slideDown();
 	}
 	//
 	// close
@@ -333,7 +367,7 @@
 		trace("sfb close");
 		if (bOverlay&&!oSettings.fixed) {
 			$("#sfbrowser #fbbg").fadeOut();
-			$("#sfbrowser #fbwin").slideUp("normal",function(){$("#sfbrowser").remove();});
+			mWin.slideUp("normal",function(){$("#sfbrowser").remove();});
 		}
 	}
 	// sortFbTable
@@ -387,7 +421,7 @@
 		sTr += "<td abbr=\""+obj.file+"\" title=\""+obj.file+"\" class=\"icon\" style=\"background-image:url("+oSettings.sfbpath+"icons/"+(oSettings.icons.indexOf(obj.mime)!=-1?obj.mime:"default")+".gif);\">"+(obj.file.length>20?obj.file.substr(0,15)+"(...)":obj.file)+"</td>";
 		sTr += "<td abbr=\""+obj.mime+"\">"+sMime+"</td>";
 		sTr += "<td abbr=\""+obj.rsize+"\">"+obj.size+"</td>";
-		sTr += "<td abbr=\""+obj.time+"\">"+obj.date+"</td>";
+		sTr += "<td abbr=\""+obj.time+"\" title=\""+obj.date+"\">"+obj.date.split(" ")[0]+"</td>";
 		var bVImg = (obj.width*obj.height)>0;
 		sTr += (bHasImgs?("<td"+(bVImg?(" abbr=\""+(obj.width*obj.height)+"\""):"")+">"+(bVImg?(obj.width+" x "+obj.height+" px"):"")+"</td>"):"");
 		sTr += "<td>";
@@ -752,39 +786,6 @@
 	function clearObject(o) {
 		for (var sProp in o) delete o[sProp];
 	}
-	// moveWindow
-	function moveWindow(e,xo,yo) {
-		var mHd = $(".sfbheader>h3");
-		var mPrn = $("#fbbg");
-		var iWdt = e.pageX-xo-mPrn.offset().left;
-		var iHgt = e.pageY-yo-mPrn.offset().top;
-		$("#sfbrowser div#fbwin").css({left:iWdt+"px",top:iHgt+"px"});
-	}
-	// resizeWindow
-	function resizeWindow(e,xo,yo) {
-		var mPrn = $("#fbwin");
-		var iWdt = Math.max(331,e.pageX+xo-mPrn.offset().left);
-		var iHgt = Math.max(275,e.pageY+yo-mPrn.offset().top);
-		$("#sfbrowser div#fbwin").css({width:iWdt+"px",height:iHgt+"px"});
-		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
-		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
-		$.each( oSettings.plugins, function(i,sPlugin) {
-			if ($.sfbrowser[sPlugin].resizeWindow) $.sfbrowser[sPlugin].resizeWindow(iWdt,iHgt);
-		});
-	}
-//	// reposition
-//	function reposition() {
-//		var fFbX = Math.round($(window).height()/2-$("#fbwin").height()/2);
-//		var fFbY = Math.round($(window).width()/2-$("#fbwin").width()/2);
-//		$("#fbwin").css({
-//			 top:  fFbX
-//			,left: fFbY
-//		});
-//		$("#sfbcontext").slideUp("fast");
-//		$.each( oSettings.plugins, function(i,sPlugin) {
-//			if ($.sfbrowser[sPlugin].reposition) $.sfbrowser[sPlugin].reposition(fFbX,fFbY);
-//		});
-//	}
 	// is numeric
 	function isNum(n) {
 		return (parseFloat(n)+"")==n;
@@ -800,6 +801,107 @@
 	function stopEvt(e) {
 		e.stopPropagation();
 	}
+	////////////////////////////////////////////////////////////////////////////
+	// resizing
+	//
+	// resizeBrowser
+	function resizeBrowser() {
+		if ($("#sfbrowser").length>0) {
+			iBrW = $(window).width();
+			iBrH = $(window).height();
+			//alert("iBrW: "+iBrW+"iBrH: "+iBrH);
+			var oPos = mWin.position();
+			var iRbX = oPos.left;
+			var iRbW = mWin.width();
+			var iRbY = oPos.top;
+			var iRbH = mWin.height();
+			if ((iRbX+iRbW)>iBrW) {
+				var iRbX = iBrW-iRbW;
+				if (iRbX<0) {
+					iRbW = Math.max(iWinMaxW,iRbW+iRbX);
+					iRbX = 0;
+				}
+			}
+			if ((iRbY+iRbH)>iBrH) {
+				var iRbY = iBrH-iRbH;
+				if (iRbY<0) {
+					iRbH = Math.max(iWinMaxH,iRbH+iRbY);
+					iRbY = 0;
+				}
+			}
+			if (iRbX!=oPos.left||iRbY!=oPos.top) moveWindow(null,iRbX,iRbY);
+			//if (iRbW!=mWin.width()||iRbH!=mWin.height()) resizeWindow(null,iRbW,iRbH);
+		}
+	}
+	// moveWindow
+	function moveWindow(e,xo,yo) {
+		var mHd = $(".sfbheader>h3");
+		var mPrn = $("#fbbg");
+		var iXps = e?Math.min(iBrW-mWin.width(),Math.max(0,e.pageX-xo-mPrn.offset().left)):xo;
+		var iYps = e?Math.min(iBrH-mWin.height(),Math.max(0,e.pageY-yo-mPrn.offset().top)):yo;
+		mWin.css({left:iXps+"px",top:iYps+"px"});
+	}
+	// resizeWindow
+	function resizeWindow(e,xo,yo) {
+		var mBg = $("#fbbg");
+		var oBPos = mBg.position();
+		var oPos = mWin.position();
+		//var iWdt = e?Math.min(iBrW-oPos.left,Math.max(iWinMaxW,e.pageX+xo-oPos.left)):xo;
+		//var iHgt = e?Math.min(iBrH-oPos.top,Math.max(iWinMaxH,e.pageY+yo-oPos.top)):yo;
+		var iWdt = Math.max(iWinMaxW,e.pageX+xo-oPos.left);
+		var iHgt = Math.max(iWinMaxH,e.pageY+yo-oPos.top);
+//alert("Math.max(iWinMaxH,e.pageY+yo-oPos.top):\n "+iWinMaxH+" "+e.pageY+" "+yo+" "+oPos.top+" = "+iHgt);
+//alert("e.pageY: "+e.pageY);
+//		var iWdt = Math.max(iWinMaxW,oBPos.left+xo-oPos.left);
+//		var iHgt = Math.max(iWinMaxH,oBPos.top+yo-oPos.top);
+		mWin.css({width:iWdt+"px",height:iHgt+"px"});
+		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
+		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
+		$.each( oSettings.plugins, function(i,sPlugin) {
+			if ($.sfbrowser[sPlugin].resizeWindow) $.sfbrowser[sPlugin].resizeWindow(iWdt,iHgt);
+		});
+	}
+	// setSfbCookie
+	function setSfbCookie() {
+		var mBg = $("#fbbg");
+		var oBPos = mBg.position();
+		var oPos = mWin.position();
+		var sCval = "{"
+		sCval +=  "\"x\":"+(oPos.left-oBPos.left);
+		sCval += ",\"y\":"+(oPos.top-oBPos.top);
+		sCval += ",\"w\":"+mWin.width();
+		sCval += ",\"h\":"+mWin.height();
+		sCval += "}";
+//		alert("sCval: "+sCval+" "+$(document).scrollTop());
+		createCookie($.sfbrowser.id,sCval,356);
+	}
+	//////////////////////
+	//
+	// cookie functions
+	//
+	function createCookie(name,value,days) {
+		if (days) {
+			var date = new Date();
+			date.setTime(date.getTime()+(days*24*60*60*1000));
+			var expires = "; expires="+date.toGMTString();
+		}
+		else var expires = "";
+		document.cookie = 	name+"="+value+expires+"; path=/";
+	}
+	function readCookie(name) {
+		var nameEQ = name + "=";
+		var ca = document.cookie.split(';');
+		for(var i=0;i < ca.length;i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') c = c.substring(1,c.length);
+			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+		}
+		return null;
+	}
+	function eraseCookie(name) {
+		createCookie(name,"",-1);
+	}
+
 	////////////////////////////////////////////////////////////////
 	//
 	// here starts copied functions from http://www.phpletter.com/Demo/AjaxFileUpload-Demo/

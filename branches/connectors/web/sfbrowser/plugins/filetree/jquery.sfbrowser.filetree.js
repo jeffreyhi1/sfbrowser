@@ -1,18 +1,22 @@
 ;(function($) {
 	//
-//	// functions
+	// data from sfbrowser
+	// functions
 	var trace;
 	var openDir;
 //	var closeSFB;
 //	var addContextItem;
 //	var file;
 //	var lang;
-//	// variables
+	// variables
 	var aPath;
 //	var bOverlay;
-//	var oSettings;
+	var oSettings;
 	var oTree;
-//	var mFB;
+	var mFB;
+	//
+	// private vars
+	var iFTW = 120;
 	//
 	$.fn.extend($.sfbrowser, {
 		filetree: function(p) {
@@ -20,20 +24,36 @@
 			openDir = p.openDir;
 			aPath = p.aPath;
 			oTree = p.oTree;
+			oSettings = p.oSettings;
+			mFB = p.mFB;
 			//
-			$("#fbtable").before("<div id=\"filetree\"><div></div><ul></ul></div>");
+			$("#fbtable").before("<div id=\"filetree\"><div></div><ul></ul></div>").before("<div id=\"divider\"></div>");
 			$("#filetree").css({height:	$("#fbtable").height()+"px"});
+			$("#divider").attr("title",oSettings.lang.dragMe).mousedown( function(e){
+					var iXo = e.pageX-$(e.target).offset().left;
+					$("body").mousemove(function(e){
+						divide(e,iXo);
+					});
+				});
+			$.sfbrowser.filetree.resizeWindow(123,123);
 		}
 	});
 	$.extend($.sfbrowser.filetree, {
 		resizeWindow: function(iWdt,iHgt) {
-			$("#filetree").css({
-				 height:	$("#fbtable").height()+"px"
-			});
+			var iHgt = $("#fbtable").height();
+			var iTotW = $("div#winbrowser").width();
+//			var iPrvW = iFTW;//$("div#filetree>ul").width();//$("div#fbpreview").width();
+//			trace("iTotW: "+iTotW);
+			var iTreeW = iFTW/iTotW*100;
+			var iTbleW = (iTotW-iFTW-12)/iTotW*100;
+//			trace("iTreeW: "+iPrvW+"/"+iTotW+"*200="+iTreeW);
+			$("#filetree").css({width:iTreeW+"%",height:iHgt+"px"});
+			$("#fbtable").css({width:iTbleW+"%"});
+			$("#divider").css({height:(iHgt+4)+"px"});
 		}
 		,listAdd: function(oFile) {
 			if (oFile.mime=="folder") {
-				oFile.tr.remove();
+				//oFile.tr.remove();
 				checkUltree(oFile.file);
 			} else if (oFile.mime=="folderup") {
 				oFile.tr.remove();
@@ -44,7 +64,7 @@
 		}
 	});
 	function checkUltree(dir) {
-		trace("filetree.checkUltree\n\tdir:\t"+dir+"\n\tpath:\t"+aPath);
+//		trace("filetree.checkUltree\n\tdir:\t"+dir+"\n\tpath:\t"+aPath);
 		var mUl = $("#filetree>ul");
 		var mLi = null;
 		$.each( aPath, function(i,sDir) { // check dirs in current path
@@ -75,7 +95,9 @@
 		return mLi;
 	}
 	function switchDir(e,sDir) {
-		trace("switchDir "+e+" "+sDir+" "+aPath);
+		//trace("switchDir "+e+" "+sDir+" "+aPath);
+		$("#filetree .selected").removeClass("selected");
+		$(e.target).addClass("selected");
 		//trace("e "+" "+e.target.nodeName);
 		//trace("e "+" "+e.currentTarget.nodeName);
 		//trace(e);
@@ -87,12 +109,17 @@
 		}
 		aNPath.reverse();
 		aNPath[0] = aPath[0];
-		trace(":aNPath\t"+aNPath);
-		trace(":aPath\t"+aPath);
+//		trace(":aNPath\t"+aNPath);
+//		trace(":aPath\t"+aPath);
 		while (aPath.length>0) aPath.pop();
 		for (var i=0;i<(aNPath.length-1);i++) aPath.push(aNPath[i]+(i>0?"/":""));
-		trace("aPath\t"+aPath+":::"+aNPath[aNPath.length-1]);
+//		trace("aPath\t"+aPath+":::"+aNPath[aNPath.length-1]);
 		openDir(aNPath[aNPath.length-1]+"/");
 
+	}
+	// divide
+	function divide(e,xo) {
+		iFTW = Math.min($("div#winbrowser").width()-100,Math.max(50,e.pageX+xo-$("#fbwin").offset().left));
+		$.sfbrowser.filetree.resizeWindow(0,0);
 	}
 })(jQuery);

@@ -247,6 +247,18 @@ body, html {
 				cursor: pointer;
 				white-space: nowrap;
 			}
+			#sfbrowser table thead tr th.type {
+				width: 24px;
+				overflow: hidden;
+			}
+			#sfbrowser table thead tr th.size {
+				width: 24px;
+				overflow: hidden;
+			}
+			#sfbrowser table thead tr th.buttons {
+				width: 54px;
+				overflow: hidden;
+			}
 			#sfbrowser table tbody tr.over {
 				background-color: #def;
 			}
@@ -255,6 +267,7 @@ body, html {
 			}
 				#sfbrowser table tbody tr td {
 					vertical-align: top;/*baseline;*/
+					border-right: 1px solid #def;
 				}
 				#sfbrowser td.loading {
 					height: 194px;

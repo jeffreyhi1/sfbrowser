@@ -33,7 +33,7 @@
 				});
 			});
 			$(window).load(function() {
-				$.fn.sfbrowser();
+				$.fn.sfbrowser({x:20,y:20,w:700});
 			});
 			-->
 		</script>
