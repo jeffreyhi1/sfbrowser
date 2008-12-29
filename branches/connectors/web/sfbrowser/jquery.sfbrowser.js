@@ -532,7 +532,6 @@
 		trace("sfb openDir "+dir+" to "+oSettings.conn);
 		if (dir) dir = String(dir+"/").replace(/(\/+)/gi,"/");
 		if (!dir||aPath[aPath.length-1]!=dir) {
-			mFB.find("#filesDetails>tbody").html(mTrLoading);
 			if (dir)	aPath.push(dir);
 			else		aPath.pop();
 			//
@@ -540,6 +539,7 @@
 			if (oCTree.filled) { // open cached directory
 				fillList(oCTree.contents);
 			} else { // open directory with php callback
+				mFB.find("#filesDetails>tbody").html(mTrLoading);
 				$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
 						if (data.error!="") {
