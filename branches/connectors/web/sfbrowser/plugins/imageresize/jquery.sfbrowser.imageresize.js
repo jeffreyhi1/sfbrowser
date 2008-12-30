@@ -6,6 +6,8 @@
 	var addContextItem;
 	var file;
 	var lang;
+	var moveWindowDown;
+	var resizeWindow;
 	// variables
 	var aPath;
 	var oSettings;
@@ -45,14 +47,22 @@
 			addContextItem = p.addContextItem;
 			file = p.file;
 			lang = p.lang;
+			moveWindowDown = p.moveWindowDown;
+			resizeWindow = p.resizeWindow;
 			//
 			var oSfb = $.sfbrowser;
 			sConnector = oSettings.sfbpath+"plugins/imageresize/connectors/"+oSettings.connector+"/imageresize."+oSettings.connector;
 			//
 			mSfb.find("#fbwin").prepend(oSettings.imageresize);
 			//
+			// header
+			mSfb.find("#sfbimgresize>div.sfbheader>h3").mousedown(moveWindowDown);
 			// resize menu
-			mSfb.find("div.cancelresize").text(oSettings.lang.cancel).click(function(){$("#sfbimgresize").hide();$("#winbrowser").show();});
+			mSfb.find("div.cancelresize").text(oSettings.lang.cancel).click(function(){
+				$("#sfbimgresize").hide();
+				$("#winbrowser").show();
+				resizeWindow();
+			});
 			mSfb.find("div.resize").text(oSettings.lang.resize).click(resizeSend);
 			mSfb.find("div.handle").attr("title",oSettings.lang.dragMe).mousedown(dragStart);
 			mSfb.find("div#crop").attr("title",oSettings.lang.dragMe).mousedown(dragStart);
@@ -243,6 +253,7 @@
 						//
 						$("#sfbimgresize").hide();
 						$("#winbrowser").show();
+						resizeWindow();
 					}
 				}
 			}});

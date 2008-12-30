@@ -21,6 +21,7 @@
 *   - localisation (English, Dutch or Spanish)
 *	- server side script connector
 *	- plugin environment
+*	- filetree plugin
 *	- image resize/cropping plugin
 *   - sortable file table
 *   - file filtering
@@ -32,7 +33,9 @@
 *	- folder creation
 *   - multiple files selection (not in IE for now)
 *	- inline or overlay window
-*	- window resizing and dragging
+*	- window dragging and resizing
+*	- cookie for size, position and path
+*	- keyboard shortcuts
 *
 * how it works
 *   - sfbrowser returns a list of file objects.
@@ -113,7 +116,7 @@
 	// default settings
 	$.sfbrowser = {
 		 id: "SFBrowser"
-		,version: "2.5.3"
+		,version: "3.0.0"
 		,defaults: {
 			 title:		""						// the title
 			,select:	function(a){trace(a)}	// calback function on choose
@@ -124,7 +127,7 @@
 			,resize:	null					// resize images after upload: array(width,height) or null
 			,inline:	"body"					// a JQuery selector for inline browser
 			,fixed:		false					// keep the browser open after selection (only works when inline is not "body")
-			,cookie:	!false					// use a cookie to remeber path, x, y, w, h
+			,cookie:	true					// use a cookie to remeber path, x, y, w, h
 			,x:			null					// x position, centered if left null
 			,y:			null					// y position, centered if left null
 			,w:			640						// width
@@ -262,30 +265,8 @@
 			//////////////////////////// window positioning and sizing
 			if (bOverlay) { // resize and move window
 				$(window).bind("resize", resizeBrowser);
-				mSfb.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(e){
-					var iXo = e.pageX-$(e.target).offset().left;
-					var iYo = e.pageY-$(e.target).offset().top;
-					$("body").mousemove(function(e){
-						moveWindow(e,iXo,iYo);
-					});
-					$("body").mouseup(function(){
-						$("body").unbind("mousemove");
-						$("body").unbind("mouseup");
-						if (oSettings.cookie) setSfbCookie();
-					});
-				});
-				mSfb.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(e){
-					var iXo = e.pageX-$(e.target).offset().left;
-					var iYo = e.pageY-$(e.target).offset().top;
-					$("body").mousemove(function(e){
-						resizeWindow(e,iXo,iYo);
-					});
-					$("body").mouseup(function(){
-						$("body").unbind("mousemove");
-						$("body").unbind("mouseup");
-						if (oSettings.cookie) setSfbCookie();
-					});
-				});
+				mSfb.find("h3").attr("title",oSettings.lang.dragMe).mousedown(moveWindowDown);
+				mSfb.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown(resizeWindowDown);
 				if (oSettings.x==null) oSettings.x = Math.round($(window).width()/2-mWin.width()/2);
 				if (oSettings.y==null) oSettings.y = Math.round($(window).height()/2-mWin.height()/2);
 				mWin.css({ top:oSettings.y, left:oSettings.x, width:oSettings.w, height:oSettings.h });
@@ -301,25 +282,50 @@
 			}
 			//
 			//////////////////////////// keys
-			// ESC : 27
-			// (F1 : xxx : help)				#impossible: F1 browser help
-			// F2 : 113 : rename
-			// F4 : 115 : edit					#unimplemented
-			// (F5 : xxx : copy)				#impossible: F5 reloads
-			// (F6 : xxx : move)				#no key in SFB
-			// (F7 : xxx : create directory)	#no key in SFB
-			// F8 : 119	: delete				#unimplemented
-			// F9 : 120	: properties			#unimplemented
-			// (F10 : xxx : quit)				#no key in SFB
-			// CTRL-A : xxx : select all
+			// ESC		27		close filebrowser
+			// (F1		-		help)				#impossible: F1 browser help
+			// F2		113		rename
+			// F4		115		edit				#unimplemented
+			// (F5		-		copy)				#impossible: F5 browser reloads
+			// (F6		-		move)				
+			// (F7		-		create directory)	
+			// F8		119		delete				#unimplemented
+			// F9		120		properties			#unimplemented
+			// (F10		-		quit)				
+			// F11		122							#impossible: F5 browser fullscreen
+			// F12		123							
+			// 13		RETURN	choose file
+			// 32		SPACE	select file			#unimplemented
+			// SHIFT	65		multiple selection
+			// CTRL		17
+			// CTRL-A	65+17	select all
+			// CTRL-Q	65+81	close filebrowser
+			// CTRL-F	65+70	open filebrowser	$$ only after first run
+			// left		37
+			// up		38
+			// right	39
+			// down		40
 			oSettings.keys = [];
 			$(window).keydown(function(e){
 				oSettings.keys[e.keyCode] = true;
 				//trace("key: "+e.keyCode+" ")
-				if (e.keyCode==65&&oSettings.keys[17]) {
-					$("#sfbrowser tbody>tr").each(function(){$(this).addClass("selected")});
-					return false;
+					switch (e.keyCode) {
+						case 13: chooseFile(); break;
+					}
+				// CTRL functions
+				if (oSettings.keys[17]) {
+					var bReturn = false;
+					switch (e.keyCode) {
+						case 81: closeSFB(); break;
+						case 65: $("#sfbrowser tbody>tr").each(function(){$(this).addClass("selected")}); break;
+						case 70: if ($("#sfbrowser").length==0) $.sfb(oSettings); break;
+						default: bReturn = true;
+					}
+					if (!bReturn) return false;
 				}
+				//if (e.keyCode==70&&oSettings.keys[17]) {
+				//	if ($("#sfbrowser").length==0) $.sfb();
+				//}
 			});
 			$(window).keyup(function(e){
 				//trace("key: "+e.keyCode+" ")
@@ -338,6 +344,9 @@
 				,addContextItem:	addContextItem
 				,file:				file
 				,lang:				lang
+				,resizeWindowDown:	resizeWindowDown
+				,moveWindowDown:	moveWindowDown
+				,resizeWindow:		resizeWindow
 				// variables
 				,aPath:		aPath
 				,bOverlay:	bOverlay
@@ -491,10 +500,9 @@
 		//if (!oSettings.keys[16]) trace("todo: shift selection");
 		if (!oSettings.keys[17]) $("#sfbrowser tbody>tr").each(function(){if (mTr[0]!=$(this)[0]) $(this).removeClass("selected")});
 		//
-		// check if something is being renamed
-		if (checkRename()[0]!=mTr[0]&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]) {
-			// rename with timeout to enable doubleclick (input field stops propagation)
-			setTimeout(renameSelected,500,mTr);
+		// check if something is being renamed: if (no other file is being renamed & the table row is selected & file is not an up-folder & shift is not pressed & the first table cell is targeted)
+		if (checkRename()[0]!=mTr[0]&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]&&mTr.find("td:eq(0)")[0]==e.target) {
+			setTimeout(renameSelected,500,mTr); // rename with timeout to enable doubleclick (input field stops propagation)
 		} else {
 			if (oSettings.keys[17]&&!bRight) mTr.toggleClass("selected");
 			else mTr.addClass("selected");
@@ -505,18 +513,23 @@
 			var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // todo: cleanup img path
 			$("<img src=\""+sFuri+"\" />").appendTo("#fbpreview").click(function(){$(this).parent().toggleClass("auto")});
 		} else if (oSettings.ascii.indexOf(oFile.mime)!=-1) {// preview ascii
-			$("#fbpreview").html(oSettings.lang.previewText);
-			$.ajax({type:"POST", url:oSettings.conn, data:"a=mizu&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
-					if (typeof(data.error)!="undefined") {
-					if (data.error!="") {
-						trace("sfb error: "+lang(data.error));
-						alert(lang(data.error));
-					} else {
-						trace(lang(data.msg));
-						$("#fbpreview").html("<pre><div>"+oSettings.lang.previewPart.replace("#1",oSettings.preview)+"</div>\n"+data.data.text.replace(/\>/g,"&gt;").replace(/\</g,"&lt;")+"</pre>");
+			if (oFile.preview) {
+				$("#fbpreview").html(oFile.preview);
+			} else {
+				$("#fbpreview").html(oSettings.lang.previewText);
+				$.ajax({type:"POST", url:oSettings.conn, data:"a=mizu&folder="+aPath.join("")+"&file="+sFile, dataType:"json", success:function(data, status){
+						if (typeof(data.error)!="undefined") {
+						if (data.error!="") {
+							trace("sfb error: "+lang(data.error));
+							alert(lang(data.error));
+						} else {
+							trace(lang(data.msg));
+							oFile.preview = "<pre><div>"+oSettings.lang.previewPart.replace("#1",oSettings.preview)+"</div>\n"+data.data.text.replace(/\>/g,"&gt;").replace(/\</g,"&lt;")+"</pre>";
+							$("#fbpreview").html(oFile.preview);
+						}
 					}
-				}
-			}});
+				}});
+			}
 		}
 		return false;
 	}
@@ -554,7 +567,7 @@
 			if (oSettings.cookie) setSfbCookie();
 			$.each(aSelect,function(i,oFile){oFile.file = sReturnPath+aPath.join("").replace(oSettings.base,"")+oFile.file;});// todo: correct path
 			oSettings.select(aSelect);
-			closeSFB();
+			if (bOverlay) closeSFB();
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////// actions
@@ -646,7 +659,10 @@
 	}
 	// rename
 	function renameSelected(e) {
+//		trace("renameSelected "+e);
+//		trace(e);
 		var oFile = file(e);
+//		trace("oFile "+" "+oFile);
 		if (oFile) {
 			var mStd = oFile.tr.find("td:eq(0)");
 			mStd.html("");
@@ -826,7 +842,21 @@
 			}
 		}
 	}
+	// window
+	function unbindBody(e) {
+		$("body").unbind("mousemove");
+		$("body").unbind("mouseup");
+		if (oSettings.cookie) setSfbCookie();
+	}
 	// moveWindow
+	function moveWindowDown(e) {
+		var iXo = e.pageX-$(e.target).offset().left;
+		var iYo = e.pageY-$(e.target).offset().top;
+		$("body").mousemove(function(e){
+			moveWindow(e,iXo,iYo);
+		});
+		$("body").mouseup(unbindBody);
+	}
 	function moveWindow(e,xo,yo) {
 		var mHd = $(".sfbheader>h3");
 		var mPrn = $("#fbbg");
@@ -835,6 +865,14 @@
 		mWin.css({left:iXps+"px",top:iYps+"px"});
 	}
 	// resizeWindow
+	function resizeWindowDown(e) {
+		var iXo = e.pageX-$(e.target).offset().left;
+		var iYo = e.pageY-$(e.target).offset().top;
+		$("body").mousemove(function(e){
+			resizeWindow(e,iXo,iYo);
+		});
+		$("body").mouseup(unbindBody);
+	}
 	function resizeWindow(e,xo,yo) {
 		var iWdt, iHgt;
 		if (e) {

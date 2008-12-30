@@ -32,9 +32,9 @@
 					$(this).attr("id",$(this).text());
 				});
 			});
-			$(window).load(function() {
-				$.fn.sfbrowser({x:20,y:20,w:700});
-			});
+			//$(window).load(function() {
+			//	$.fn.sfbrowser({x:20,y:20,w:700});
+			//});
 			-->
 		</script>
 	</head>
@@ -43,7 +43,7 @@
 			<h1><span>SFBrowser</span></h1>
 		</div>
 		<div id="page">
-			<p><img src="data/screenshot.jpg" align="right" />SFBrowser is a file browser and uploader for jquery and php5. It returns a list of objects with containing the names and additional information of the selected files.<br/>
+			<p><img src="data/screenshot.jpg" align="right" />SFBrowser is a file browser and uploader for jQuery and PHP5. It returns a list of objects with containing the names and additional information of the selected files.<br/>
 			You can use it, like any open-file-dialog, to select one or more files. Most inherent functionalities are also there like: file upload, file preview, creating folders and renaming or deleting files and folders.<br/>
 			You can download SFBrowser at <a href="http://plugins.jquery.com/project/SFBrowser">http://plugins.jquery.com/project/SFBrowser</a>. This is also the place where you can report bugs or request new features.</p>
 
@@ -57,8 +57,7 @@
 				<li>ajax file upload</li>
 				<li>localisation (English, Dutch or Spanish)</li>
 				<li>server side script connector</li>
-				<li>plugin environment</li>
-				<li>image resize/cropping plugin</li>
+				<li>plugin environment (with filetree and imageresize plugin)</li>
 				<li>sortable file table</li>
 				<li>file filtering</li>
 				<li>file renaming</li>
@@ -69,13 +68,14 @@
 				<li>folder creation</li>
 				<li>multiple files selection (not in IE for now)</li>
 				<li>inline or overlay window</li>
-				<li>window resizing</li>
+				<li>window dragging and resizing</li>
+				<li>cookie for size, position and path</li>
 			</ul>
 
 
 			<h2>installation</h2>
 
-			<p>SFBrowser can (theoretically) be connected to different server side languages. For sake of clarity this document will asume you're running PHP. Check the connectors paragraph if you want to use any other server side script.</p>
+			<p>SFBrowser can (theoretically) be connected to different server side languages. For sake of clarity this document will asume you're running PHP, so when PHP is mentioned further on you can interpret it as every other server side scripting connector. Check the connectors paragraph if you want to use another server side scripting language.</p>
 
 			<ul>
 				<li>adjust 'sfbrowser/connectors/php/config.php' to your needs</li>
@@ -91,9 +91,11 @@
 					<tr><td>SFB_PATH</td>			<td>String</td>		<td>path of sfbrowser (relative to the page it is run from)</td><td>"sfbrowser/"</td></tr>
 					<tr><td>SFB_BASE</td>			<td>String</td>		<td>upload folder (relative to sfbpath)</td><td>"../data/"</td></tr>
 					<tr><td>SFB_LANG</td>			<td>String</td>		<td>language ISO code</td><td>"en"</td></tr>
-					<tr><td>SFB_DENY</td>			<td>String</td>		<td>forbidden file extensions</td><td>"php,php3,phtml"</td></tr>
 					<tr><td>PREVIEW_BYTES</td>		<td>Integer</td>	<td>ASCII files can be previewed up to a certain amout of bytes.</td><td>600</td></tr>
+					<tr><td>SFB_DENY</td>			<td>String</td>		<td>forbidden file extensions</td><td>"php,php3,phtml"</td></tr>
 					<tr><td>SFB_ERROR_RETURN</td>	<td>String</td>		<td>return value in case of error</td><td>"&lt;html&gt;&lt;head&gt;&lt;meta http-equiv="Refresh" content="0;URL=http:/" /&gt;&lt;/head&gt;&lt;/html&gt;"</td></tr>
+					<tr><td>SFB_PLUGINS</td>		<td>String</td>		<td>case sensitive, comma separated string with plugin names</td></tr>
+					<tr><td>SFB_DEBUG</td>			<td>Boolean</td>	<td>a debug boolean to log some server side actions</td></tr>
 				</tbody>
 			</table>
 
@@ -118,6 +120,11 @@
 					<tr><td>resize</td>	<td>Array&lt;Integer&gt;</td>		<td>maximum image constraint: array(width,height) or null</td><td>null</td></tr>
 					<tr><td>inline</td>	<td>String</td>		<td>a JQuery selector for inline browser</td><td>"body"</td></tr>
 					<tr><td>fixed</td>	<td>Boolean</td>	<td>keep the browser open after selection (only works when inline is not "body")</td><td>false</td></tr>
+					<tr><td>cookie</td>	<td>Boolean</td>	<td>use a cookie to remeber path, x, y, w, h</td><td>true</td></tr>
+					<tr><td>x</td>		<td>Integer</td>	<td>x position, centered if left null</td><td>null</td></tr>
+					<tr><td>y</td>		<td>Integer</td>	<td>y position, centered if left null</td><td>null</td></tr>
+					<tr><td>w</td>		<td>Integer</td>	<td>width</td><td>460</td></tr>
+					<tr><td>h</td>		<td>Integer</td>	<td>height</td><td>480</td></tr>
 				
 					<tr><th colspan="4">the following properties normally need no change</th></tr>
 					<tr><td>img</td>	<td>Array&lt;String&gt;</td>		<td>image file extensions for preview</td><td>["gif", "jpg", "jpeg", "png"]</td></tr>
@@ -128,9 +135,10 @@
 					<tr><td>base</td>	<td>String</td>		<td>the upload folder</td><td>"data/"</td></tr>
 					<tr><td>deny</td>	<td>Array&lt;String&gt;</td>		<td>denied file extensions</td><td>["php", "php3", "phtml"]</td></tr>
 					<tr><td>icons</td>	<td>Array&lt;String&gt;</td>		<td>list of existing file icons</td><td>["jpg", "html", "ico"...(etc)]</td></tr>
-					<tr><td>preview</td><td>Integer</td>		<td>amount of bytes for ascii preview</td><td>600</td></tr>
-					<tr><td>connector</td><td>String</td>		<td>server side script type</td><td>"php"</td></tr>
+					<tr><td>preview</td><td>Integer</td>	<td>amount of bytes for ascii preview</td><td>600</td></tr>
+					<tr><td>connector</td><td>String</td>	<td>server side script type</td><td>"php"</td></tr>
 					<tr><td>lang</td><td>Object</td>		<td>language object</td><td>see lang/en.js</td></tr>
+					<tr><td>plugins</td><td>Array</td>		<td>plugins</td><td>[]</td></tr>
 					
 				</tbody>
 			</table>
@@ -158,9 +166,9 @@
 
 			<h3>allow and deny</h3>
 			<p>These properties are arrays containing file extensions that are, or are not shown in SFBrowser. This also applies to the file types that you upload.<br/>
-			For security reasons the main deny list is located at 'sfbrowser/config.php' by the name of SFB_DENY (a comma separated list of extensions). Additional file types can be denied through javascript with the <span class="property">deny</span> property.<br/>
+			For security reasons the main deny list is located at 'sfbrowser/connectors/php/config.php' by the name of SFB_DENY (a comma separated list of extensions). Additional file types can be denied through javascript with the <span class="property">deny</span> property.<br/>
 			If <span class="property">allow</span> is left empty (which is the default) all file types are allowed except those listed in <span class="property">deny</span>.<br/>
-			Denying is stronger than allowing so an extension in both arrays will always be denied. The SFB_DENY constant in 'sfbrowser/config.php' always has priority over the <span class="property">deny</span> property.</p>
+			Denying is stronger than allowing so an extension in both arrays will always be denied. The SFB_DENY constant in 'sfbrowser/connectors/php/config.php' always has priority over the <span class="property">deny</span> property.</p>
 
 
 			<h2>usage</h2>
@@ -174,18 +182,14 @@
 			<h3>context menu</h3>
 			<p><img src="data/contextmenu.png" align="right" />Right clicking a file will popup a context menu with additional (or obvious) file operations. The two functions in here that are not found anywhere else in the interface are 'Duplicate' and 'Resize'.</p>
 			<p>'Duplicate' creates a copy of the selected file and appends it with a number (multiple file duplication does not work yet).</p>
-			<p><img src="data/resize_image.jpg" align="left" width="302" style="margin: 0px 30px 30px 0px;" />With 'Resize' you can size down larger jpeg images. Indexed color images (gif and png) require different code that isn't implemented yet.<br />
-			Selecting 'Resize'  will bring up an overlay as show to the right here. Larger images are always scaled down to fit the window, this scale is shown as a percentage above the image.<br/>
-			You can now drag the little white square to resize the image or just enter its desired with or height.<br/>
-			Since upscaling mostly results in ugly images, upscaling is turned off. Also (for now) the images aspect ratio will always be maintained (meaning you can't just resize the width, the height will always follow accordingly).<br/>
-			Cropping is not possible, it's on the to-do list though.</p>
+		
 
 
 			<h2>examples</h2>
 
 			<h3>a simple one</h3>
-			<p>The selected files are added to a list and their sizes are shown. Select multiple files by pressing CTRL and selecting. Start <a onclick="$.sfb({select:addFiles});">adding files.</a></p>
-			<pre class="example">$.sfb({select:addFiles});</pre> 
+			<p>The selected files are added to a list and their sizes are shown. Select multiple files by pressing CTRL and selecting. Start <a onclick="$.sfb({select:addFiles,plugins:[]});">adding files.</a></p>
+			<pre class="example">$.sfb({select:addFiles,plugins:[]});</pre> 
 			<div id="addfiles"></div>
 			
 			<h3>allowing only images</h3>
@@ -210,7 +214,24 @@
 
 			<h2>plugins</h2>
 
-			<p>Lorem ipsum blaat.</p>
+			<p>Plugins can be used to extend or alter the basic functionality of SFBrowser. These have to be set in 'sfbrowser/connectors/php/config.php'.<br/>
+			Once set, the init will automaticly fill the $.sfbrowser.defaults.plugins variable. You can override this by parsing the plugins variable in your SFBrowser call (as shown in example 1).</p>
+			<p>Right now SFBrowser comes with two plugins: filetree and imageresize.</p>
+
+			<h3>filetree</h3>
+			<p><img src="data/filetree.png" align="left" style="margin: 0px 30px 30px 0px;" />This plugin adds an additional filetree to the left of the filetable.</p>
+
+			<h3>imageresize</h3>
+			<p><img src="data/resize_image.jpg" align="left" style="margin: 0px 30px 30px 0px;" />This plugin lets you resize and crop jpeg images. Indexed color images (gif and png) require different code that isn't implemented yet.<br />
+			Selecting 'Resize' from a files context menu will bring up a window as shown here. Larger images are always scaled down to fit the window, this scale is shown as a percentage above the image. You can resize the window if you want to bring the scaling up to one hundred percent.<br/>
+			Dragging the red squares resizes the image. Dragging the blue squares will crop the image. You can also manually enter the desired with or height.<br/>
+			Since upscaling mostly results in ugly images, upscaling is turned off. The images aspect ratio will always be maintained (meaning you can't just resize the width, the height will always follow accordingly).</p>
+
+			<h3>plugin creation</h3>
+			<p>A plugin can be one Javascript file (filetree plugin) but it can also make use of PHP or CSS (imageresize plugin).<br/>
+			If a plugin contains either or both a config.php and/or and init.php file the initialisation will include them. It is then assumed that all javascript and/or css inclusion will be handled by that init.php file.<br/>
+			If no init.php file is found, the SFBrowser initialisation will then try to find and add both the plugin.js and/or the plugin.css.<br/>
+			Right now that is all the documentation there is for plugin development. If you want to develop one you simply have to look at the existing two and follow their structure. </p>
 
 
 			<h2>connectors</h2>

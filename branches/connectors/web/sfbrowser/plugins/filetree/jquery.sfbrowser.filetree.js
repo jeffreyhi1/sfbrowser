@@ -22,7 +22,7 @@
 			oSettings = p.oSettings;
 			mSfb = p.mSfb;
 			//
-			$("#fbtable").before("<div id=\"filetree\"><div></div><ul></ul></div>").before("<div id=\"divider\"></div>");
+			$("#fbtable").before("<div id=\"filetree\"><div></div><ul></ul></div>").before("<div id=\"divider\"></div>").css({width:"60%",borderLeftWidth:"0px"});
 			$("#filetree").css({height:	$("#fbtable").height()+"px"});
 			$("#divider").attr("title",oSettings.lang.dragMe).mousedown( function(e){
 					$("body").mousemove(divide);
@@ -68,6 +68,8 @@
 			mLi = checkUlLi(mUl,sId,sDir);
 			mUl = $(mLi.find("ul")[0]);
 		});
+		$("#filetree strong.selected").removeClass("selected");
+		mLi.find(">strong").addClass("selected");
 		if (dir) { // check dirs in current folder
 			var sId = dir.replace(/\//gi,"");
 			mLi = checkUlLi(mUl,sId);
@@ -92,12 +94,6 @@
 		return mLi;
 	}
 	function switchDir(e,sDir) {
-		//trace("switchDir "+e+" "+sDir+" "+aPath);
-		$("#filetree .selected").removeClass("selected");
-		$(e.target).addClass("selected");
-		//trace("e "+" "+e.target.nodeName);
-		//trace("e "+" "+e.currentTarget.nodeName);
-		//trace(e);
 		var mLi = $(e.target).parent();
 		var aNPath = [mLi.attr("id")];
 		while (mLi.parent().parent().get(0).nodeName=="LI") {
@@ -106,11 +102,8 @@
 		}
 		aNPath.reverse();
 		aNPath[0] = aPath[0];
-//		trace(":aNPath\t"+aNPath);
-//		trace(":aPath\t"+aPath);
 		while (aPath.length>0) aPath.pop();
 		for (var i=0;i<(aNPath.length-1);i++) aPath.push(aNPath[i]+(i>0?"/":""));
-//		trace("aPath\t"+aPath+":::"+aNPath[aNPath.length-1]);
 		openDir(aNPath[aNPath.length-1]+"/");
 
 	}
