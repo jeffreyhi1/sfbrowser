@@ -4,16 +4,11 @@
 	// functions
 	var trace;
 	var openDir;
-//	var closeSFB;
-//	var addContextItem;
-//	var file;
-//	var lang;
 	// variables
 	var aPath;
-//	var bOverlay;
 	var oSettings;
 	var oTree;
-	var mFB;
+	var mSfb;
 	//
 	// private vars
 	var iFTW = 120;
@@ -25,14 +20,15 @@
 			aPath = p.aPath;
 			oTree = p.oTree;
 			oSettings = p.oSettings;
-			mFB = p.mFB;
+			mSfb = p.mSfb;
 			//
 			$("#fbtable").before("<div id=\"filetree\"><div></div><ul></ul></div>").before("<div id=\"divider\"></div>");
 			$("#filetree").css({height:	$("#fbtable").height()+"px"});
 			$("#divider").attr("title",oSettings.lang.dragMe).mousedown( function(e){
-					var iXo = e.pageX-$(e.target).offset().left;
-					$("body").mousemove(function(e){
-						divide(e,iXo);
+					$("body").mousemove(divide);
+					$("body").mouseup(function(){
+						$("body").unbind("mousemove");
+						$("body").unbind("mouseup");
 					});
 				});
 			$.sfbrowser.filetree.resizeWindow(123,123);
@@ -64,7 +60,7 @@
 		}
 	});
 	function checkUltree(dir) {
-//		trace("filetree.checkUltree\n\tdir:\t"+dir+"\n\tpath:\t"+aPath);
+		//trace("filetree.checkUltree\n\tdir:\t"+dir+"\n\tpath:\t"+aPath);
 		var mUl = $("#filetree>ul");
 		var mLi = null;
 		$.each( aPath, function(i,sDir) { // check dirs in current path
@@ -78,16 +74,17 @@
 		}
 	}
 	function checkUlLi(mUl,sId,sDir) {
+		//trace("checkUlLi "+" mUl:"+mUl+" sId:"+sId+" sDir:"+sDir);
 		var mLi = null;
 		var mFLi = mUl.find("li#"+sId);
 		if (mFLi.length==0) {
-			mLi = $("<li id=\""+sId+"\"><strong>"+sId+"</strong><ul></ul></li>").appendTo(mUl).find("strong").mouseover(function() {
+			mLi = $("<li id=\""+sId+"\"><strong>"+sId+"</strong><ul></ul></li>").appendTo(mUl);
+			mLi.find("strong").mouseover(function() {
 				$(this).addClass("over");
 			}).mouseout( function() {
 				$(this).removeClass("over");
 			}).click( function(e) {
 				switchDir(e,sDir?sDir:sId);
-				//openDir(sDir?sDir:sId);
 			});
 		} else {
 			mLi = $(mFLi[0]);
@@ -118,8 +115,8 @@
 
 	}
 	// divide
-	function divide(e,xo) {
-		iFTW = Math.min($("div#winbrowser").width()-100,Math.max(50,e.pageX+xo-$("#fbwin").offset().left));
+	function divide(e) {
+		iFTW = Math.min($("div#winbrowser").width()-100,Math.max(50,e.pageX-10-$("#fbwin").offset().left));
 		$.sfbrowser.filetree.resizeWindow(0,0);
 	}
 })(jQuery);

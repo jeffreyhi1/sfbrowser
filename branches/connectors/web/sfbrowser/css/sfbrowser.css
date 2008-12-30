@@ -1,6 +1,5 @@
 body, html {
 	margin: 0px;
-	height: 0px;
 	height: 100%;
 }
 /* black layer */
@@ -21,7 +20,7 @@ body, html {
 		text-decoration: none;
 	}
 #sfbrowser div#fbbg {
-	position: fixed;
+	position: absolute;
 	top: 0px;
 	left: 0px;
 	width: 100%;
@@ -29,14 +28,17 @@ body, html {
 	background-color: #000;
 	opacity: .5;
 	filter: alpha(opacity=50);
+	color: #fff;
+	display: none;
 }
 /* window */
 #sfbrowser div#fbwin {
-	position: fixed;
+	position: absolute;
 	width: 600px;
 	border: 2px outset #888;
 	background: #D5D5D5 url(sfbg.jpg) 0px 0px repeat-x;
 	overflow: hidden;
+	display: none;
 }
 	/* header */
 	#sfbrowser .sfbheader {

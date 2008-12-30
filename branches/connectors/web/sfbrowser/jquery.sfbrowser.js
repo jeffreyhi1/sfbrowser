@@ -51,7 +51,6 @@
 *	- Spanish translation: Juan Razeto
 *
 * todo:
-*	- add: cookie remembers settings
 *	- add: view option: new or custom css files
 *	- code: check what timeout code in upload code really does
 *	- add: image preview: no-scaling on smaller images
@@ -83,6 +82,7 @@
 *	- changed: cleaned up some of code
 *	- fixed: doubleclick vs rename
 *	- added: folder contents caching
+*	- added: cookie remembers position, sizing and path
 *
 */
 ;(function($) {
@@ -156,31 +156,43 @@
 			oSettings = $.extend({}, $.sfbrowser.defaults, _settings);
 			oSettings.conn = oSettings.sfbpath+"connectors/"+oSettings.connector+"/sfbrowser."+oSettings.connector;
 			//
-			// cookies
+			//////////////////////////// cookies
+			var oCookie;
 			var bCookie = false;
-			if (!oSettings.cookie) {
+			if (oSettings.cookie) {
 				var sCookie = readCookie($.sfbrowser.id);
 				if (sCookie) {
-					bCookie = true;
-					var oCookie = eval("("+sCookie+")");
-					oSettings.x = oCookie.x;
-					oSettings.y = oCookie.y;
-					oSettings.w = oCookie.w;
-					oSettings.h = oCookie.h;
-//					alert("oSettings.x: "+oSettings.x+" "+oSettings.y+" "+oSettings.w+" "+oSettings.h);
-					//alert("scroll: "+$(document).scrollLeft()+" "+$(document).scrollTop());
-					//alert("scroll: "+$(window).scrollLeft()+" "+$(window).scrollTop());
+					try {
+						oCookie = eval("("+sCookie+")");
+						oSettings.x = oCookie.x;
+						oSettings.y = oCookie.y;
+						oSettings.w = oCookie.w;
+						oSettings.h = oCookie.h;
+						bCookie = true;
+					} catch (e) {
+						trace("sfb cookie error: "+sCookie);
+						eraseCookie($.sfbrowser.id);
+					}
 				}
 			} else {
 				eraseCookie($.sfbrowser.id);
 			}
-			// start vars
+			//////////////////////////// (clear) start vars
 			aSort = [];
 			bHasImgs = oSettings.allow.length===0||oSettings.img.copy().concat(oSettings.allow).unique().length<(oSettings.allow.length+oSettings.img.length);
+			trace("aPath "+" "+aPath);
 			aPath = [];
 			sFolder = oSettings.base+oSettings.folder;
 			bOverlay = oSettings.inline=="body";
 			if (bOverlay) oSettings.fixed = false;
+			//
+			// path vs cookie
+			if (oSettings.cookie&&bCookie) {
+				if (sFolder==oCookie.path[0]) {
+					aPath = oCookie.path;
+					sFolder = aPath.pop();
+				}
+			}
 			//
 			// fix path and base to relative
 			var aFxSfbpath =	oSettings.sfbpath.split("/");
@@ -204,89 +216,91 @@
 			}
 			sReturnPath = (aFxSfbpath.join("/")+"//"+aFxBase.join("/")).replace(/(\/+)/,"/").replace(/(^\/+)/,"");
 			//
-			// file browser
-			mFB = $(oSettings.browser);
-			mWin = mFB.find("#fbwin");
-			//
-			mFB.find("div.sfbheader>h3").text(oSettings.title==""?oSettings.lang.sfb:oSettings.title);
-			mFB.find("div#loadbar>span").text(oSettings.lang.loading);
-			if (oSettings.dirs) mFB.find("ul#sfbtopmenu>li>a.newfolder").attr("title",oSettings.lang.newfolder).find("span").text(oSettings.lang.newfolder);
-			else mFB.find("ul#sfbtopmenu>li>a.newfolder").parent().remove();
-			if (oSettings.upload) mFB.find("ul#sfbtopmenu>li>a.upload").attr("title",oSettings.lang.upload).find("span").text(oSettings.lang.upload);
-			else mFB.find("ul#sfbtopmenu>li>a.upload").parent().remove();
-			if (!oSettings.fixed) mFB.find("ul#sfbtopmenu>li>a.cancelfb").attr("title",oSettings.lang.cancel).find("span").text(oSettings.lang.cancel);
-			else mFB.find("ul#sfbtopmenu>li>a.cancelfb").parent().remove();
-			mFB.find("table#filesDetails>thead>tr>th:eq(0)").text(oSettings.lang.name);
-			mFB.find("table#filesDetails>thead>tr>th:eq(1)").text(oSettings.lang.type);
-			mFB.find("table#filesDetails>thead>tr>th:eq(2)").text(oSettings.lang.size);
-			mFB.find("table#filesDetails>thead>tr>th:eq(3)").text(oSettings.lang.date);
-			mFB.find("table#filesDetails>thead>tr>th:eq(4)").text(oSettings.lang.dimensions);
-			if (!bHasImgs) mFB.find("table#filesDetails>thead>tr>th:eq(4)").remove();
-			mFB.find("div.choose").text(oSettings.lang.choose);
-			mFB.find("div.cancelfb").text(oSettings.lang.cancel);
-			mFB.find("div#sfbfooter").prepend("SFBrowser "+$.sfbrowser.version+" ");
-			//
-			mTrLoading = mFB.find("#filesDetails>tbody>tr").clone();
+			//////////////////////////// file browser
+			mSfb = $(oSettings.browser);
+			mWin = mSfb.find("#fbwin");
+			// top menu
+			mSfb.find("div.sfbheader>h3").text(oSettings.title==""?oSettings.lang.sfb:oSettings.title);
+			mSfb.find("div#loadbar>span").text(oSettings.lang.loading);
+			if (oSettings.dirs) mSfb.find("ul#sfbtopmenu>li>a.newfolder").click(addFolder).attr("title",oSettings.lang.newfolder).find("span").text(oSettings.lang.newfolder);
+			else mSfb.find("ul#sfbtopmenu>li>a.newfolder").parent().remove();
+			if (oSettings.upload) mSfb.find("ul#sfbtopmenu>li>a.upload").attr("title",oSettings.lang.upload).find("span").text(oSettings.lang.upload);
+			else mSfb.find("ul#sfbtopmenu>li>a.upload").parent().remove();
+			mSfb.find("#fileToUpload").change(fileUpload);
+			if (!oSettings.fixed) mSfb.find("ul#sfbtopmenu>li>a.cancelfb").click(closeSFB).attr("title",oSettings.lang.cancel).find("span").text(oSettings.lang.cancel);
+			else mSfb.find("ul#sfbtopmenu>li>a.cancelfb").parent().remove();
+			// table headers
+			mSfb.find("table#filesDetails>thead>tr>th:eq(0)").text(oSettings.lang.name);
+			mSfb.find("table#filesDetails>thead>tr>th:eq(1)").text(oSettings.lang.type);
+			mSfb.find("table#filesDetails>thead>tr>th:eq(2)").text(oSettings.lang.size);
+			mSfb.find("table#filesDetails>thead>tr>th:eq(3)").text(oSettings.lang.date);
+			mSfb.find("table#filesDetails>thead>tr>th:eq(4)").text(oSettings.lang.dimensions);
+			if (!bHasImgs) mSfb.find("table#filesDetails>thead>tr>th:eq(4)").remove();
+			mSfb.find("thead>tr>th:not(:last)").each(function(i,o){
+				$(this).click(function(){sortFbTable(i)});
+			}).append("<span>&nbsp;</span>");
+			// big buttons
+			mSfb.find("div.choose").click(chooseFile).text(oSettings.lang.choose);
+			mSfb.find("div.cancelfb").click(closeSFB).text(oSettings.lang.cancel);
+			mSfb.find("div#sfbfooter").prepend("SFBrowser "+$.sfbrowser.version+" ");
+			// loading msg
+			mTrLoading = mSfb.find("#filesDetails>tbody>tr").clone();
 			//
 			$("#sfbrowser").remove();
-			mFB.appendTo(oSettings.inline);
-			if (!bOverlay) {
-				trace("sfb inline");
-				mFB.css(					{position:"relative",width:"auto",heigth:"auto"});
-				mFB.find("#fbbg").remove();
-				mWin.css(		{position:"relative"});
-			}
+			mSfb.appendTo(oSettings.inline);
 			//
-			// context localize and functions
+			// context menu
 			addContextItem("choose",		oSettings.lang.choose,		function(){chooseFile()});
 			addContextItem("rename",		oSettings.lang.rename,		function(){renameSelected()});
 			addContextItem("duplicate",		oSettings.lang.duplicate,	function(){duplicateFile()});
 			addContextItem("preview",		oSettings.lang.view,		function(){$("#sfbrowser tbody>tr.selected:first a.preview").trigger("click")});
 			addContextItem("filedelete",	oSettings.lang.del,			function(){$("#sfbrowser tbody>tr.selected:first a.filedelete").trigger("click")});
-			//
-			// functions ($$move to localisation)
-			// top menu
-			mFB.find(".cancelfb").click(		closeSFB );
-			mFB.find("#fileToUpload").change(	fileUpload);
-			mFB.find(".newfolder").click(		addFolder );
-			// table
-			mFB.find("div.choose").click(		chooseFile);
-			mFB.find("thead>tr>th:not(:last)").each(function(i,o){
-				$(this).click(function(){sortFbTable(i)});
-			}).append("<span>&nbsp;</span>");
-			// context menu
-			mFB.click(function(){
+			mSfb.click(function(){
 				$("#sfbcontext").slideUp("fast");
 			});
+			//
+			//////////////////////////// window positioning and sizing
 			if (bOverlay) { // resize and move window
 				$(window).bind("resize", resizeBrowser);
-				mFB.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(e){
+				mSfb.find("h3").attr("title",oSettings.lang.dragMe).mousedown( function(e){
 					var iXo = e.pageX-$(e.target).offset().left;
 					var iYo = e.pageY-$(e.target).offset().top;
 					$("body").mousemove(function(e){
 						moveWindow(e,iXo,iYo);
 					});
-				});//.select(function(){return false;})
-				$("body").mouseup(function(){
-					$("body").unbind("mousemove");
-					setSfbCookie();
+					$("body").mouseup(function(){
+						$("body").unbind("mousemove");
+						$("body").unbind("mouseup");
+						if (oSettings.cookie) setSfbCookie();
+					});
 				});
-				mFB.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(e){
+				mSfb.find("div#resizer").attr("title",oSettings.lang.dragMe).mousedown( function(e){
 					var iXo = e.pageX-$(e.target).offset().left;
 					var iYo = e.pageY-$(e.target).offset().top;
 					$("body").mousemove(function(e){
 						resizeWindow(e,iXo,iYo);
 					});
+					$("body").mouseup(function(){
+						$("body").unbind("mousemove");
+						$("body").unbind("mouseup");
+						if (oSettings.cookie) setSfbCookie();
+					});
 				});
-				$("body").mouseup(function(){
-					$("body").unbind("mousemove");
-					setSfbCookie();
-				});
-			} else {
-				mFB.find("div#resizer").remove();
+				if (oSettings.x==null) oSettings.x = Math.round($(window).width()/2-mWin.width()/2);
+				if (oSettings.y==null) oSettings.y = Math.round($(window).height()/2-mWin.height()/2);
+				mWin.css({ top:oSettings.y, left:oSettings.x, width:oSettings.w, height:oSettings.h });
+			} else { // static inline window
+				trace("sfb inline");
+				mSfb.find("#fbbg").remove();
+				mSfb.find("div#resizer").remove();
+				mSfb.find("div.cancelfb").remove();
+				mSfb.css({position:"relative",width:"auto",heigth:"auto"});
+				mWin.css({position:"relative",border:"0px"});
+				var mPrn = $(oSettings.inline);
+				resizeWindow(0,mPrn.width(),mPrn.height());
 			}
 			//
-			// keys
+			//////////////////////////// keys
 			// ESC : 27
 			// (F1 : xxx : help)				#impossible: F1 browser help
 			// F2 : 113 : rename
@@ -314,16 +328,8 @@
 				oSettings.keys[e.keyCode] = false;
 				return false;
 			});
-			//			
-			if (bOverlay) {
-				mWin.width(oSettings.w);
-				mWin.height(oSettings.h);
-				if (oSettings.x==null) oSettings.x = Math.round($(window).width()/2-mWin.width()/2);
-				if (oSettings.y==null) oSettings.y = Math.round($(window).height()/2-mWin.height()/2);
-				mWin.css({ top:oSettings.y, left:oSettings.x });
-			}
 			//
-			// plugins
+			//////////////////////////// plugins
 			var oThis = {
 				// functions
 				 trace:				trace
@@ -337,7 +343,7 @@
 				,bOverlay:	bOverlay
 				,oSettings:	oSettings
 				,oTree:		oTree
-				,mFB:		mFB
+				,mSfb:		mSfb
 			};
 			trace("plugins:");
 			$.each( oSettings.plugins, function(i,sPlugin) {
@@ -345,7 +351,7 @@
 				trace("\t"+sPlugin);
 			});
 			//
-			// start
+			//////////////////////////// start
 			openDir(sFolder);
 			openSFB();
 			if (oSettings.cookie&&!bCookie) setSfbCookie();
@@ -358,17 +364,15 @@
 	function openSFB() {
 		trace("sfb open");
 		// animation
-		mFB.find("#fbbg").css({display:"none"}).slideDown();
-		mWin.css({display:"none"}).slideDown();
+		mSfb.find("#fbbg").slideDown();
+		mWin.slideDown("normal",resizeWindow);
 	}
 	//
 	// close
 	function closeSFB() {
 		trace("sfb close");
-		if (bOverlay&&!oSettings.fixed) {
-			$("#sfbrowser #fbbg").fadeOut();
-			mWin.slideUp("normal",function(){$("#sfbrowser").remove();});
-		}
+		$("#sfbrowser #fbbg").fadeOut();
+		mWin.slideUp("normal",function(){mSfb.remove();});
 	}
 	// sortFbTable
 	function sortFbTable(nr) {
@@ -381,7 +385,7 @@
 		$("#sfbrowser tbody>tr.folder").tsort("td:eq(0)[abbr]",{attr:"abbr",order:aSort[iSort]});
 		$("#sfbrowser tbody>tr:not(.folder)").tsort("td:eq("+iSort+")[abbr]",{attr:"abbr",order:aSort[iSort]});
 
-		mFB.find("thead>tr>th>span").each(function(i,o){$(this).css({backgroundPosition:(i==iSort?5:-9)+"px "+(aSort[iSort]=="asc"?4:-96)+"px"})});
+		mSfb.find("thead>tr>th>span").each(function(i,o){$(this).css({backgroundPosition:(i==iSort?5:-9)+"px "+(aSort[iSort]=="asc"?4:-96)+"px"})});
 	}
 	// fill list
 	function fillList(contents) {
@@ -410,8 +414,6 @@
 	}
 	// add item to list
 	function listAdd(obj) {
-		//trace("listAdd: "+obj.file);
-		//
 		getPath().contents[obj.file] = obj;
 		//
 		var bFolder = obj.mime=="folder";
@@ -423,7 +425,7 @@
 		sTr += "<td abbr=\""+obj.rsize+"\">"+obj.size+"</td>";
 		sTr += "<td abbr=\""+obj.time+"\" title=\""+obj.date+"\">"+obj.date.split(" ")[0]+"</td>";
 		var bVImg = (obj.width*obj.height)>0;
-		sTr += (bHasImgs?("<td"+(bVImg?(" abbr=\""+(obj.width*obj.height)+"\""):"")+">"+(bVImg?(obj.width+" x "+obj.height+" px"):"")+"</td>"):"");
+		sTr += (bHasImgs?("<td"+(bVImg?(" abbr=\""+(obj.width*obj.height)+"\""):"")+">"+(bVImg?(obj.width+"x"+obj.height+"px"):"")+"</td>"):"");
 		sTr += "<td>";
 		if (!(bFolder||bUFolder)) sTr += "	<a onclick=\"\" class=\"sfbbutton preview\" title=\""+oSettings.lang.view+"\">&nbsp;<span>"+oSettings.lang.view+"</span></a>";
 		if (!bUFolder) sTr += "	<a onclick=\"\" class=\"sfbbutton filedelete\" title=\""+oSettings.lang.del+"\">&nbsp;<span>"+oSettings.lang.del+"</span></a>";
@@ -444,10 +446,7 @@
 			mTr.mouseup( clickTr );
 		}).dblclick( function(e) {
 			chooseFile($(this));
-		})//.find("a.preview").click( function(e) {
-//			//trace(oSettings.conn+"?a=sui&file="+aPath.join("")+obj.file);
-//			window.open(oSettings.conn+"?a=sui&file="+aPath.join("")+oFile.file,"_blank");
-//		});
+		})
 		mTr[0].oncontextmenu = function() {
 			return false;
 		};
@@ -455,7 +454,6 @@
 		$.each( oSettings.plugins, function(i,sPlugin) {
 			if ($.sfbrowser[sPlugin].listAdd) $.sfbrowser[sPlugin].listAdd(obj);
 		});
-//		mTr
 		return mTr;
 	}
 	// clickTr: left- or rightclick table row
@@ -504,7 +502,7 @@
 		// preview image
 		$("#fbpreview").html("");
 		if (oSettings.img.indexOf(oFile.mime)!=-1) {
-			var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // $$ cleanup img path
+			var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // todo: cleanup img path
 			$("<img src=\""+sFuri+"\" />").appendTo("#fbpreview").click(function(){$(this).parent().toggleClass("auto")});
 		} else if (oSettings.ascii.indexOf(oFile.mime)!=-1) {// preview ascii
 			$("#fbpreview").html(oSettings.lang.previewText);
@@ -553,8 +551,8 @@
 		if (aSelect.length==0) {
 			alert(oSettings.lang.fileNotselected);
 		} else {
-			// correct path
-			$.each(aSelect,function(i,oFile){oFile.file = sReturnPath+aPath.join("").replace(oSettings.base,"")+oFile.file;});
+			if (oSettings.cookie) setSfbCookie();
+			$.each(aSelect,function(i,oFile){oFile.file = sReturnPath+aPath.join("").replace(oSettings.base,"")+oFile.file;});// todo: correct path
 			oSettings.select(aSelect);
 			closeSFB();
 		}
@@ -573,7 +571,7 @@
 			if (oCTree.filled) { // open cached directory
 				fillList(oCTree.contents);
 			} else { // open directory with php callback
-				mFB.find("#filesDetails>tbody").html(mTrLoading);
+				mSfb.find("#filesDetails>tbody").html(mTrLoading);
 				$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
 						if (data.error!="") {
@@ -768,13 +766,6 @@
 		if (after===undefined) $("<li><a class=\"textbutton "+className+"\" title=\""+title+"\"><span>"+title+"</span></a></li>").appendTo("ul#sfbcontext").find("a").click(fnc).click(function(){$("#sfbcontext").slideUp("fast")});
 		else $("<li><a class=\"textbutton "+className+"\" title=\""+title+"\"><span>"+title+"</span></a></li>").insertAfter("ul#sfbcontext>li:eq("+after+")").find("a").click(fnc).click(function(){$("#sfbcontext").slideUp("fast")});
 	}
-//	// setButton
-//	function setButton(src,find,lang,fnc) {
-//		$("ul#sfbcontext")
-//		var mBut = src.find(find);
-//		if (lang&&lang!="") mBut.attr("title",lang).find("span").text(lang);
-//		if (fnc) mBut.click(fnc);
-//	}
 	// lang
 	function lang(s) {
 		var aStr = s.split("#");
@@ -795,6 +786,7 @@
 		if (window.console&&window.console.log) {
 			if (typeof(o)=="string")	window.console.log(o);
 			else						for (var prop in o) window.console.log(prop+":\t"+String(o[prop]).split("\n")[0]);
+			//$("#fbbg").text(o);
 		}
 	}
 	// stop event propagation
@@ -809,52 +801,53 @@
 		if ($("#sfbrowser").length>0) {
 			iBrW = $(window).width();
 			iBrH = $(window).height();
-			//alert("iBrW: "+iBrW+"iBrH: "+iBrH);
-			var oPos = mWin.position();
-			var iRbX = oPos.left;
-			var iRbW = mWin.width();
-			var iRbY = oPos.top;
-			var iRbH = mWin.height();
-			if ((iRbX+iRbW)>iBrW) {
-				var iRbX = iBrW-iRbW;
-				if (iRbX<0) {
-					iRbW = Math.max(iWinMaxW,iRbW+iRbX);
-					iRbX = 0;
+			if (bOverlay) {
+				var oPos = mWin.position();
+				var iRbX = oPos.left;
+				var iRbW = mWin.width();
+				var iRbY = oPos.top;
+				var iRbH = mWin.height();
+				if ((iRbX+iRbW)>iBrW) {
+					var iRbX = iBrW-iRbW;
+					if (iRbX<0) {
+						iRbW = Math.max(iWinMaxW,iRbW+iRbX);
+						iRbX = 0;
+					}
 				}
-			}
-			if ((iRbY+iRbH)>iBrH) {
-				var iRbY = iBrH-iRbH;
-				if (iRbY<0) {
-					iRbH = Math.max(iWinMaxH,iRbH+iRbY);
-					iRbY = 0;
+				if ((iRbY+iRbH)>iBrH) {
+					var iRbY = iBrH-iRbH;
+					if (iRbY<0) {
+						iRbH = Math.max(iWinMaxH,iRbH+iRbY);
+						iRbY = 0;
+					}
 				}
+				if (iRbX!=oPos.left||iRbY!=oPos.top) moveWindow(null,iRbX,iRbY);
+				if (iRbW<mWin.width()||iRbH<mWin.height()) resizeWindow(null,iRbW,iRbH);
 			}
-			if (iRbX!=oPos.left||iRbY!=oPos.top) moveWindow(null,iRbX,iRbY);
-			//if (iRbW!=mWin.width()||iRbH!=mWin.height()) resizeWindow(null,iRbW,iRbH);
 		}
 	}
 	// moveWindow
 	function moveWindow(e,xo,yo) {
 		var mHd = $(".sfbheader>h3");
 		var mPrn = $("#fbbg");
-		var iXps = e?Math.min(iBrW-mWin.width(),Math.max(0,e.pageX-xo-mPrn.offset().left)):xo;
-		var iYps = e?Math.min(iBrH-mWin.height(),Math.max(0,e.pageY-yo-mPrn.offset().top)):yo;
+		var iXps = e?Math.max(0,Math.min(iBrW-mWin.width(),e.pageX-xo-mPrn.offset().left)):xo;
+		var iYps = e?Math.max(0,Math.min(iBrH-mWin.height(),e.pageY-yo-mPrn.offset().top)):yo;
 		mWin.css({left:iXps+"px",top:iYps+"px"});
 	}
 	// resizeWindow
 	function resizeWindow(e,xo,yo) {
-		var mBg = $("#fbbg");
-		var oBPos = mBg.position();
-		var oPos = mWin.position();
-		//var iWdt = e?Math.min(iBrW-oPos.left,Math.max(iWinMaxW,e.pageX+xo-oPos.left)):xo;
-		//var iHgt = e?Math.min(iBrH-oPos.top,Math.max(iWinMaxH,e.pageY+yo-oPos.top)):yo;
-		var iWdt = Math.max(iWinMaxW,e.pageX+xo-oPos.left);
-		var iHgt = Math.max(iWinMaxH,e.pageY+yo-oPos.top);
-//alert("Math.max(iWinMaxH,e.pageY+yo-oPos.top):\n "+iWinMaxH+" "+e.pageY+" "+yo+" "+oPos.top+" = "+iHgt);
-//alert("e.pageY: "+e.pageY);
-//		var iWdt = Math.max(iWinMaxW,oBPos.left+xo-oPos.left);
-//		var iHgt = Math.max(iWinMaxH,oBPos.top+yo-oPos.top);
-		mWin.css({width:iWdt+"px",height:iHgt+"px"});
+		var iWdt, iHgt;
+		if (e) {
+			var oSPos = mSfb.position();
+			var oWPos = mWin.position();
+			iWdt = Math.max(iWinMaxW,Math.min(iBrW,e.pageX+xo-(oWPos.left+oSPos.left)));
+			iHgt = Math.max(iWinMaxH,Math.min(iBrH,e.pageY+yo-(oWPos.top+oSPos.top)));
+			mWin.css({width:iWdt+"px",height:iHgt+"px"});
+		} else {
+			iWdt = xo?xo:mWin.width();
+			iHgt = yo?yo:mWin.height();
+			mWin.css({width:iWdt+"px",height:iHgt+"px"});
+		}
 		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
 		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
 		$.each( oSettings.plugins, function(i,sPlugin) {
@@ -867,12 +860,15 @@
 		var oBPos = mBg.position();
 		var oPos = mWin.position();
 		var sCval = "{"
-		sCval +=  "\"x\":"+(oPos.left-oBPos.left);
-		sCval += ",\"y\":"+(oPos.top-oBPos.top);
-		sCval += ",\"w\":"+mWin.width();
-		sCval += ",\"h\":"+mWin.height();
+		sCval += "\"path\":[\""+aPath.toString().replace(/,/g,"\",\"")+"\"]";
+		if (bOverlay) {
+			sCval += ",\"x\":"+(oPos.left-oBPos.left);
+			sCval += ",\"y\":"+(oPos.top-oBPos.top);
+			sCval += ",\"w\":"+mWin.width();
+			sCval += ",\"h\":"+mWin.height();
+		}
 		sCval += "}";
-//		alert("sCval: "+sCval+" "+$(document).scrollTop());
+		trace("sCval "+" "+sCval);
 		createCookie($.sfbrowser.id,sCval,356);
 	}
 	//////////////////////

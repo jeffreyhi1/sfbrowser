@@ -1,7 +1,18 @@
 ;(function($) {
+	// data from sfbrowser
+	// functions
+	var trace;
+	var openDir;
+	var addContextItem;
+	var file;
+	var lang;
+	// variables
+	var aPath;
+	var oSettings;
+	var oTree;
+	var mSfb;
 	//
-	var p; // interface to sfbrowser
-	//
+	// private vars
 	var sConnector;
 	var oFile;
 	//
@@ -24,23 +35,32 @@
 	var iCrpHs;
 	//
 	$.fn.extend($.sfbrowser, {
-		imageresize: function(_p) {
-			p = _p;
-			var oSfb = $.sfbrowser;
-			sConnector = p.oSettings.sfbpath+"plugins/imageresize/connectors/"+p.oSettings.connector+"/imageresize."+p.oSettings.connector;
+		imageresize: function(p) {
+			trace = p.trace;
+			openDir = p.openDir;
+			aPath = p.aPath;
+			oTree = p.oTree;
+			oSettings = p.oSettings;
+			mSfb = p.mSfb;
+			addContextItem = p.addContextItem;
+			file = p.file;
+			lang = p.lang;
 			//
-			p.mFB.find("#fbwin").prepend(p.oSettings.imageresize);
+			var oSfb = $.sfbrowser;
+			sConnector = oSettings.sfbpath+"plugins/imageresize/connectors/"+oSettings.connector+"/imageresize."+oSettings.connector;
+			//
+			mSfb.find("#fbwin").prepend(oSettings.imageresize);
 			//
 			// resize menu
-			p.mFB.find("div.cancelresize").text(p.oSettings.lang.cancel).click(function(){$("#sfbimgresize").hide();$("#winbrowser").show();});
-			p.mFB.find("div.resize").text(p.oSettings.lang.resize).click(resizeSend);
-			p.mFB.find("div.handle").attr("title",p.oSettings.lang.dragMe).mousedown(dragStart);
-			p.mFB.find("div#crop").attr("title",p.oSettings.lang.dragMe).mousedown(dragStart);
-			$("div#sfbimgresize>div.fbcontent>label[for=rszperc]").text(p.oSettings.lang.scale);
+			mSfb.find("div.cancelresize").text(oSettings.lang.cancel).click(function(){$("#sfbimgresize").hide();$("#winbrowser").show();});
+			mSfb.find("div.resize").text(oSettings.lang.resize).click(resizeSend);
+			mSfb.find("div.handle").attr("title",oSettings.lang.dragMe).mousedown(dragStart);
+			mSfb.find("div#crop").attr("title",oSettings.lang.dragMe).mousedown(dragStart);
+			$("div#sfbimgresize>div.fbcontent>label[for=rszperc]").text(oSettings.lang.scale);
 			// resize form
-			$("form#sfbsize legend:eq(0)").text(p.oSettings.lang.resize+":");
-			$("form#sfbsize label[for=rszW]").text(p.oSettings.lang.width);
-			$("form#sfbsize label[for=rszH]").text(p.oSettings.lang.height);
+			$("form#sfbsize legend:eq(0)").text(oSettings.lang.resize+":");
+			$("form#sfbsize label[for=rszW]").text(oSettings.lang.width);
+			$("form#sfbsize label[for=rszH]").text(oSettings.lang.height);
 			$("form#sfbsize input[name=rszW]").change(function(){
 				iRzsW = Math.min(oFile.width,parseInt($(this).val()));
 				iRzsH = iRzsW/fRzsAspR;
@@ -52,9 +72,9 @@
 				setView();
 			});
 			// resize crop
-			$("form#sfbsize legend:eq(1)").text(p.oSettings.lang.crop+":");
-			$("form#sfbsize label[for=crpW]").text(p.oSettings.lang.width);
-			$("form#sfbsize label[for=crpH]").text(p.oSettings.lang.height);
+			$("form#sfbsize legend:eq(1)").text(oSettings.lang.crop+":");
+			$("form#sfbsize label[for=crpW]").text(oSettings.lang.width);
+			$("form#sfbsize label[for=crpH]").text(oSettings.lang.height);
 			$("form#sfbsize input[name=crpX]").change(function(){
 				iCrpX = parseInt($(this).val());
 				setView();
@@ -72,7 +92,7 @@
 				setView();
 			});
 			// add contextmenu item
-			p.addContextItem("resize",p.oSettings.lang.resize,function(){resizeImage()},0);
+			addContextItem("resize",oSettings.lang.resize,function(){resizeImage()},0);
 		}
 	});
 	$.extend($.sfbrowser.imageresize, {
@@ -91,13 +111,13 @@
 	function resizeImage(el) {
 		$("#winbrowser").hide();
 		$("#sfbimgresize").show();
-		oFile = p.file();
+		oFile = file();
 		fRzsAspR = oFile.width/oFile.height;
 		iCrpWs = iCrpW = iRzsW = oFile.width;
 		iCrpHs = iCrpH = iRzsH = oFile.height;
 		iCrpXs = iCrpYs = iCrpX = iCrpY = 0;
-		$("#sfbimgresize>div.sfbheader>h3").text(p.oSettings.lang.imgResize+": "+oFile.file);
-		$("div#sfbrsimg>img").attr("src",p.oSettings.sfbpath+p.aPath.join("")+oFile.file);
+		$("#sfbimgresize>div.sfbheader>h3").text(oSettings.lang.imgResize+": "+oFile.file);
+		$("div#sfbrsimg>img").attr("src",oSettings.sfbpath+aPath.join("")+oFile.file);
 		$.sfbrowser.imageresize.resizeWindow();
 	}
 	// dragging
@@ -106,7 +126,7 @@
 		iCrpYs = iCrpY;
 		iCrpWs = iCrpW;
 		iCrpHs = iCrpH;
-		p.mFB.find("div.handle").each(function(i){
+		mSfb.find("div.handle").each(function(i){
 			if ($(this)[0]==e.currentTarget) iDragEl = i;
 		});
 		mDragEl = $(e.currentTarget);
@@ -195,7 +215,7 @@
 		$("form#sfbsize input[name=crpH]").val(Math.round(iCrpH));
 	}
 	function resizeSend() {
-		p.trace("sfb resizeSend");
+		trace("sfb resizeSend");
 		var iW = $("form#sfbsize input[name=rszW]").val();
 		var iH = $("form#sfbsize input[name=rszH]").val();
 		var iCX = $("form#sfbsize input[name=crpX]").val();
@@ -203,18 +223,18 @@
 		var iCW = $("form#sfbsize input[name=crpW]").val();
 		var iCH = $("form#sfbsize input[name=crpH]").val();
 		if (iW==oFile.width&&iH==oFile.height&&iCW==oFile.width&&iCH==oFile.height) {
-			p.trace("sfb Will not resize to same size.");
+			trace("sfb Will not resize to same size.");
 		} else {
-			p.trace("sfb Sending resize request...");
-			$.ajax({type:"POST", url:sConnector, data:"a=bar&folder="+p.aPath.join("")+"&file="+oFile.file+"&w="+iW+"&h="+iH+"&cx="+iCX+"&cy="+iCY+"&cw="+iCW+"&ch="+iCH, dataType:"json", success:function(data, status){
+			trace("sfb Sending resize request...");
+			$.ajax({type:"POST", url:sConnector, data:"a=bar&folder="+aPath.join("")+"&file="+oFile.file+"&w="+iW+"&h="+iH+"&cx="+iCX+"&cy="+iCY+"&cw="+iCW+"&ch="+iCH, dataType:"json", success:function(data, status){
 				if (typeof(data.error)!="undefined") {
 					if (data.error!="") {
-						p.trace(p.lang(data.error));
-						alert(p.lang(data.error));
+						trace(lang(data.error));
+						alert(lang(data.error));
 					} else {
 						oFile.width  = iCW;
 						oFile.height = iCH;
-//						for (var s in oFile) p.trace(s+": "+String(oFile[s]).split("\n")[0]);
+//						for (var s in oFile) trace(s+": "+String(oFile[s]).split("\n")[0]);
 						oFile.tr.find("td:eq(4)").attr("abbr",iCW*iCH).text(iCW+" x "+iCH+" px");
 						// preview
 						var mPrv = $("#fbpreview").clone(true);
