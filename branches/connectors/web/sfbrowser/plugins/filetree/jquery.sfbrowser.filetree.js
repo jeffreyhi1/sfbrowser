@@ -31,7 +31,7 @@
 						$("body").unbind("mouseup");
 					});
 				});
-			$.sfbrowser.filetree.resizeWindow(123,123);
+			//$.sfbrowser.filetree.resizeWindow(123,123); //$$ causes IE error : functions are probably not inited yet
 		}
 	});
 	$.extend($.sfbrowser.filetree, {

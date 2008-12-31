@@ -74,6 +74,7 @@
 *   - maybe: drag sfbrowser
 *   - maybe: copy used functions (copy, unique and indexof) from array.js
 *	- maybe: thumbnail view
+*	- fix: since resizing is possible abbreviating long filenames does not cut it (...)
 *
 * in this update:
 *	- added: server side script connectors (localisation is now js only)
@@ -429,7 +430,8 @@
 		var bUFolder = obj.mime=="folderup";
 		var sMime = bFolder||bUFolder?oSettings.lang.folder:obj.mime;
 		var sTr = "<tr id=\""+obj.file+"\" class=\""+(bFolder||bUFolder?"folder":"file")+"\">";
-		sTr += "<td abbr=\""+obj.file+"\" title=\""+obj.file+"\" class=\"icon\" style=\"background-image:url("+oSettings.sfbpath+"icons/"+(oSettings.icons.indexOf(obj.mime)!=-1?obj.mime:"default")+".gif);\">"+(obj.file.length>20?obj.file.substr(0,15)+"(...)":obj.file)+"</td>";
+//		sTr += "<td abbr=\""+obj.file+"\" title=\""+obj.file+"\" class=\"icon\" style=\"background-image:url("+oSettings.sfbpath+"icons/"+(oSettings.icons.indexOf(obj.mime)!=-1?obj.mime:"default")+".gif);\">"+(obj.file.length>20?obj.file.substr(0,15)+"(...)":obj.file)+"</td>";
+		sTr += "<td abbr=\""+obj.file+"\" title=\""+obj.file+"\" class=\"icon\" style=\"background-image:url("+oSettings.sfbpath+"icons/"+(oSettings.icons.indexOf(obj.mime)!=-1?obj.mime:"default")+".gif);\">"+obj.file+"</td>";
 		sTr += "<td abbr=\""+obj.mime+"\">"+sMime+"</td>";
 		sTr += "<td abbr=\""+obj.rsize+"\">"+obj.size+"</td>";
 		sTr += "<td abbr=\""+obj.time+"\" title=\""+obj.date+"\">"+obj.date.split(" ")[0]+"</td>";
@@ -467,7 +469,7 @@
 	}
 	// clickTr: left- or rightclick table row
 	function clickTr(e) {
-		var mTr = $(e.currentTarget);
+		var mTr = $(this);
 		mTr.unbind("mouseup");
 		var oFile = file(mTr);
 		var bFolder = oFile.mime=="folder";
@@ -682,7 +684,8 @@
 			var sNFile = mInput.val();
 
 			if (sFile==sNFile) {
-				mInput.parent().html(sFile.length>20?sFile.substr(0,15)+"(...)":sFile);
+//				mInput.parent().html(sFile.length>20?sFile.substr(0,15)+"(...)":sFile);
+				mInput.parent().html(sFile);
 			} else {
 				$.ajax({type:"POST", url:oSettings.conn, data:"a=ho&folder="+aPath.join("")+"&file="+sFile+"&nfile="+sNFile, dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
@@ -691,7 +694,8 @@
 							alert(lang(data.error));
 						} else {
 							trace(lang(data.msg));
-							mTd.html(sNFile.length>20?sNFile.substr(0,15)+"(...)":sNFile).attr("title",sNFile).attr("abbr",sNFile);
+//							mTd.html(sNFile.length>20?sNFile.substr(0,15)+"(...)":sNFile).attr("title",sNFile).attr("abbr",sNFile);
+							mTd.html(sNFile);
 							oFile.file = sNFile;
 						}
 					}
