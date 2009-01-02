@@ -1,5 +1,7 @@
 <?php
 
+include_once("config.php");
+
 function errorHandler($errno, $errstr, $errfile, $errline) {
 	throw new Exception($errstr, $errno);
 }
@@ -13,10 +15,12 @@ if (!function_exists("dump")) {
 }
 
 function trace($s) {
-	$oFile = fopen("log.txt", "a");
-	$sDump  = $s."\n";
-	fputs ($oFile, $sDump );
-	fclose($oFile);
+	if (SFB_DEBUG) {
+		$oFile = fopen("log.txt", "a");
+		$sDump  = $s."\n";
+		fputs ($oFile, $sDump );
+		fclose($oFile);
+	}
 }
 
 function format_size($size, $round = 0) {
@@ -72,6 +76,25 @@ function validateInput($sConnBse,$aGPF) {
 	} else if ($bFld&&!pathWithin($_POST["folder"],SFB_BASE)) {
 		$sErr .= sterf("path not within base");
 	}
+	// log
+	if (SFB_DEBUG) {
+		$sP = "POST:[";
+		$sG = "POST:[";
+		$sF = "POST:[";
+		foreach($_POST as $key => $value)	$sP .= $key.":".$value.",";
+		foreach($_GET as $key => $value)	$sG .= $key.":".$value.",";
+		foreach($_FILES as $key => $value)	$sF .= $key.":".$value.",";
+		$sP .= "]";
+		$sG .= "]";
+		$sF .= "]";
+		$sLog  = date("j-n-Y H:i")."\t\t";
+		$sLog .= "ip:".$_SERVER["REMOTE_ADDR"]."\t\t";
+		$sLog .= "a:".$sAction."(".$sSFile.")\t\t";
+		$sLog .= $sP."\t\t".$sG."\t\t".$sF."\t\t";
+		$sLog .= "error:".$sErr."\t\t";
+		trace($sLog);
+	}
+	//
 	return array("action"=>$sAction,"file"=>$sSFile,"error"=>$sErr);
 }
 

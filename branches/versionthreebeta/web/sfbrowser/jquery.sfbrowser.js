@@ -1,7 +1,7 @@
 /*
 * jQuery SFBrowser
 *
-* Version: 2.5.4
+* Version: 3.0.0
 *
 * Copyright (c) 2008 Ron Valstar http://www.sjeiti.com/
 *
@@ -20,9 +20,8 @@
 *   - ajax file upload
 *   - localisation (English, Dutch or Spanish)
 *	- server side script connector
-*	- plugin environment
-*	- filetree plugin
-*	- image resize/cropping plugin
+*	- plugin environment (with filetree and imageresize plugin)
+*	- data caching (minimal server communication)
 *   - sortable file table
 *   - file filtering
 *   - file renameing
@@ -54,24 +53,25 @@
 *	- Spanish translation: Juan Razeto
 *
 * todo:
-*	- add: view option: new or custom css files
+*	- fix: Opera sucks
+*	- revise: keyboard shortcuts
+*	- revise: 'fixed' property: not very nescesary
+*	- add: style option: new or custom css files
 *	- code: check what timeout code in upload code really does
 *	- add: image preview: no-scaling on smaller images
 *	- add: make text selection in table into multiple file selection
 *	- add: make "j-n-Y H:i" for files variable
 *   - new: make preview an option
 *   - new: general filetype filter
-*   - new: folder information such as number of files
-*   - IE: fix IE and Safari scrolling (table header moves probably thanks to absolute positioning of parents)
+*   - new: folder information such as number of files (possibly add to filetree)
+*   - IE: fix IE and Safari scrolling (table header moves probably due to absolute positioning of parents)
 *	- IE: fix multiple file selection
 *	- FF: multiple file selection: disable table cell highlighting (border)
 *   - new: add mime instead of extension (for mac)
 *	- add: show zip and rar file contents in preview
 *	- add: drag and drop files to folders
-*	- new: folder treeview (plugin)
 *   - new: create ascii file
 *   - new: edit ascii file (plugin (fck?))
-*   - maybe: drag sfbrowser
 *   - maybe: copy used functions (copy, unique and indexof) from array.js
 *	- maybe: thumbnail view
 *	- fix: since resizing is possible abbreviating long filenames does not cut it (...)
@@ -106,13 +106,14 @@
 	//
 	var mTrLoading;
 	//
-	var iBrW = $(window).width();
-	var iBrH = $(window).height();
+	var iBrW;// = $(window).width();
+	var iBrH;// = $(window).height();
 	var iWinMaxW = 331;
 	var iWinMaxH = 275;
 	//
 	// display
 	var mWin;
+	var mTbB;
 	//
 	// default settings
 	$.sfbrowser = {
@@ -128,7 +129,7 @@
 			,resize:	null					// resize images after upload: array(width,height) or null
 			,inline:	"body"					// a JQuery selector for inline browser
 			,fixed:		false					// keep the browser open after selection (only works when inline is not "body")
-			,cookie:	true					// use a cookie to remeber path, x, y, w, h
+			,cookie:	false					// use a cookie to remeber path, x, y, w, h
 			,x:			null					// x position, centered if left null
 			,y:			null					// y position, centered if left null
 			,w:			640						// width
@@ -145,6 +146,7 @@
 			,connector:	"php"					// connector file type (php)
 			,lang:		{}						// language object
 			,plugins:	[]						// plugins
+			,debug:		false					// debug (allows trace to console)
 		}
 		,addLang: function(oLang) {
 			for (var sId in oLang) $.sfbrowser.defaults.lang[sId] = oLang[sId];
@@ -152,7 +154,7 @@
 	};
 	// init
 	$(function() {
-		trace("SFBrowser init");
+		trace("SFBrowser init",true);
 	});
 	// call
 	$.fn.extend({
@@ -172,7 +174,7 @@
 						oSettings.y = oCookie.y;
 						oSettings.w = oCookie.w;
 						oSettings.h = oCookie.h;
-						bCookie = true;
+						if (oCookie.path.length>0) bCookie = true;
 					} catch (e) {
 						trace("sfb cookie error: "+sCookie);
 						eraseCookie($.sfbrowser.id);
@@ -182,6 +184,8 @@
 				eraseCookie($.sfbrowser.id);
 			}
 			//////////////////////////// (clear) start vars
+			iBrW = $(window).width();
+			iBrH = $(window).height();
 			aSort = [];
 			bHasImgs = oSettings.allow.length===0||oSettings.img.copy().concat(oSettings.allow).unique().length<(oSettings.allow.length+oSettings.img.length);
 			trace("aPath "+" "+aPath);
@@ -223,24 +227,27 @@
 			//////////////////////////// file browser
 			mSfb = $(oSettings.browser);
 			mWin = mSfb.find("#fbwin");
+			mTbB = mSfb.find("#fbtable>table>tbody");
 			// top menu
 			mSfb.find("div.sfbheader>h3").text(oSettings.title==""?oSettings.lang.sfb:oSettings.title);
 			mSfb.find("div#loadbar>span").text(oSettings.lang.loading);
-			if (oSettings.dirs) mSfb.find("ul#sfbtopmenu>li>a.newfolder").click(addFolder).attr("title",oSettings.lang.newfolder).find("span").text(oSettings.lang.newfolder);
-			else mSfb.find("ul#sfbtopmenu>li>a.newfolder").parent().remove();
-			if (oSettings.upload) mSfb.find("ul#sfbtopmenu>li>a.upload").attr("title",oSettings.lang.upload).find("span").text(oSettings.lang.upload);
-			else mSfb.find("ul#sfbtopmenu>li>a.upload").parent().remove();
 			mSfb.find("#fileToUpload").change(fileUpload);
-			if (!oSettings.fixed) mSfb.find("ul#sfbtopmenu>li>a.cancelfb").click(closeSFB).attr("title",oSettings.lang.cancel).find("span").text(oSettings.lang.cancel);
-			else mSfb.find("ul#sfbtopmenu>li>a.cancelfb").parent().remove();
+			var mTopA = mSfb.find("ul#sfbtopmenu>li>a");
+			if (oSettings.dirs)		mTopA.filter(".newfolder").click(addFolder).attr("title",oSettings.lang.newfolder).find("span").text(oSettings.lang.newfolder);
+			else					mTopA.filter(".newfolder").parent().remove();
+			if (oSettings.upload)	mTopA.filter(".upload").attr("title",oSettings.lang.upload).find("span").text(oSettings.lang.upload);
+			else					mTopA.filter(".upload").parent().remove();
+			if (!oSettings.fixed)	mTopA.filter(".cancelfb").click(closeSFB).attr("title",oSettings.lang.cancel).find("span").text(oSettings.lang.cancel);
+			else					mTopA.filter(".cancelfb").parent().remove();
 			// table headers
-			mSfb.find("table#filesDetails>thead>tr>th:eq(0)").text(oSettings.lang.name);
-			mSfb.find("table#filesDetails>thead>tr>th:eq(1)").text(oSettings.lang.type);
-			mSfb.find("table#filesDetails>thead>tr>th:eq(2)").text(oSettings.lang.size);
-			mSfb.find("table#filesDetails>thead>tr>th:eq(3)").text(oSettings.lang.date);
-			mSfb.find("table#filesDetails>thead>tr>th:eq(4)").text(oSettings.lang.dimensions);
-			if (!bHasImgs) mSfb.find("table#filesDetails>thead>tr>th:eq(4)").remove();
-			mSfb.find("thead>tr>th:not(:last)").each(function(i,o){
+			var mTh = mSfb.find("table#filesDetails>thead>tr>th");
+			mTh.eq(0).text(oSettings.lang.name);
+			mTh.eq(1).text(oSettings.lang.type);
+			mTh.eq(2).text(oSettings.lang.size);
+			mTh.eq(3).text(oSettings.lang.date);
+			mTh.eq(4).text(oSettings.lang.dimensions);
+			if (!bHasImgs) mTh.eq(4).remove();
+			mTh.filter(":not(:last)").each(function(i,o){
 				$(this).click(function(){sortFbTable(i)});
 			}).append("<span>&nbsp;</span>");
 			// big buttons
@@ -248,17 +255,19 @@
 			mSfb.find("div.cancelfb").click(closeSFB).text(oSettings.lang.cancel);
 			mSfb.find("div#sfbfooter").prepend("SFBrowser "+$.sfbrowser.version+" ");
 			// loading msg
-			mTrLoading = mSfb.find("#filesDetails>tbody>tr").clone();
+			mTrLoading = mTbB.find("tr").clone();
+			//
 			//
 			$("#sfbrowser").remove();
 			mSfb.appendTo(oSettings.inline);
+			//
 			//
 			// context menu
 			addContextItem("choose",		oSettings.lang.choose,		function(){chooseFile()});
 			addContextItem("rename",		oSettings.lang.rename,		function(){renameSelected()});
 			addContextItem("duplicate",		oSettings.lang.duplicate,	function(){duplicateFile()});
-			addContextItem("preview",		oSettings.lang.view,		function(){$("#sfbrowser tbody>tr.selected:first a.preview").trigger("click")});
-			addContextItem("filedelete",	oSettings.lang.del,			function(){$("#sfbrowser tbody>tr.selected:first a.filedelete").trigger("click")});
+			addContextItem("preview",		oSettings.lang.view,		function(){mTbB.find("tr.selected:first a.preview").trigger("click")});
+			addContextItem("filedelete",	oSettings.lang.del,			function(){mTbB.find("tr.selected:first a.filedelete").trigger("click")});
 			mSfb.click(function(){
 				$("#sfbcontext").slideUp("fast");
 			});
@@ -297,8 +306,8 @@
 			// F12		123							
 			// 13		RETURN	choose file
 			// 32		SPACE	select file			#unimplemented
-			// SHIFT	65		multiple selection
-			// CTRL		17
+			// SHIFT	65		multiple selection	#unimplemented
+			// CTRL		17		multiple selection
 			// CTRL-A	65+17	select all
 			// CTRL-Q	65+81	close filebrowser
 			// CTRL-F	65+70	open filebrowser	$$ only after first run
@@ -318,7 +327,7 @@
 					var bReturn = false;
 					switch (e.keyCode) {
 						case 81: closeSFB(); break;
-						case 65: $("#sfbrowser tbody>tr").each(function(){$(this).addClass("selected")}); break;
+						case 65: mTbB.("tr").each(function(){$(this).addClass("selected")}); break;
 						case 70: if ($("#sfbrowser").length==0) $.sfb(oSettings); break;
 						default: bReturn = true;
 					}
@@ -355,16 +364,13 @@
 				,oTree:		oTree
 				,mSfb:		mSfb
 			};
-			trace("plugins:");
-			$.each( oSettings.plugins, function(i,sPlugin) {
-				$.sfbrowser[sPlugin](oThis);
-				trace("\t"+sPlugin);
-			});
+			$.each( oSettings.plugins, function(i,sPlugin) { $.sfbrowser[sPlugin](oThis) });
 			//
 			//////////////////////////// start
 			openDir(sFolder);
 			openSFB();
 			if (oSettings.cookie&&!bCookie) setSfbCookie();
+			trace("SFBrowser open ("+oSettings.plugins+")",true);
 		}
 	});
 	
@@ -392,15 +398,14 @@
 		} else {
 			if (!aSort[iSort]) aSort[iSort] = "asc";
 		}
-		$("#sfbrowser tbody>tr.folder").tsort("td:eq(0)[abbr]",{attr:"abbr",order:aSort[iSort]});
-		$("#sfbrowser tbody>tr:not(.folder)").tsort("td:eq("+iSort+")[abbr]",{attr:"abbr",order:aSort[iSort]});
-
+		mTbB.find("tr.folder").tsort("td:eq(0)[abbr]",{attr:"abbr",order:aSort[iSort]});
+		mTbB.find("tr:not(.folder)").tsort("td:eq("+iSort+")[abbr]",{attr:"abbr",order:aSort[iSort]});
 		mSfb.find("thead>tr>th>span").each(function(i,o){$(this).css({backgroundPosition:(i==iSort?5:-9)+"px "+(aSort[iSort]=="asc"?4:-96)+"px"})});
 	}
 	// fill list
 	function fillList(contents) {
 		trace("sfb fillList "+aPath);
-		$("#sfbrowser tbody").children().remove();
+		mTbB.children().remove();
 		$("#fbpreview").html("");
 		aSort = [];
 		//
@@ -443,7 +448,11 @@
 		sTr += "</td>";
 		sTr += "</tr>";
 		// 
-		var mTr = $(sTr).prependTo("#sfbrowser tbody");
+		var mTr = $(sTr).prependTo(mTbB);
+		//
+//		mTr.find("td").wrapInner("<div></div>");
+//		$("#sfbrowser thead>tr").remove();
+		//
 		obj.tr = mTr;
 		mTr.find("a.filedelete").click(deleteFile);
 		mTr.find("a.preview").click(showFile);
@@ -500,7 +509,7 @@
 		}
 		//
 		//if (!oSettings.keys[16]) trace("todo: shift selection");
-		if (!oSettings.keys[17]) $("#sfbrowser tbody>tr").each(function(){if (mTr[0]!=$(this)[0]) $(this).removeClass("selected")});
+		if (!oSettings.keys[17]) mTbB.find("tr").each(function(){if (mTr[0]!=$(this)[0]) $(this).removeClass("selected")});
 		//
 		// check if something is being renamed: if (no other file is being renamed & the table row is selected & file is not an up-folder & shift is not pressed & the first table cell is targeted)
 		if (checkRename()[0]!=mTr[0]&&!bRight&&mTr.hasClass("selected")&&!bUFolder&&!oSettings.keys[17]&&mTr.find("td:eq(0)")[0]==e.target) {
@@ -538,7 +547,7 @@
 	// chooseFile
 	function chooseFile(el) {
 		var a = 0;
-		var aSelected = $("#sfbrowser tbody>tr.selected");
+		var aSelected = mTbB.find("tr.selected");
 		var aSelect = [];
 		// find selected trs and possible parsed element
 		aSelected.each(function(){aSelect.push(file(this))});
@@ -586,7 +595,7 @@
 			if (oCTree.filled) { // open cached directory
 				fillList(oCTree.contents);
 			} else { // open directory with php callback
-				mSfb.find("#filesDetails>tbody").html(mTrLoading);
+				mTbB.html(mTrLoading);
 				$.ajax({type:"POST", url:oSettings.conn, data:"a=chi&folder="+aPath.join(""), dataType:"json", success:function(data, status){
 					if (typeof(data.error)!="undefined") {
 						if (data.error!="") {
@@ -672,7 +681,7 @@
 		}
 	}
 	function checkRename() {
-		var aRenamed = $("#sfbrowser tbody>tr>td>input");
+		var aRenamed = mTbB.find("tr>td>input");
 		if (aRenamed.length>0) {
 			var mInput = $(aRenamed[0]);
 			var mTd = mInput.parent();
@@ -717,7 +726,7 @@
 					listAdd(data.data).trigger('click').trigger('click');
 					sortFbTable(); // todo: fix scrolltop below because because of
 					$("#sfbrowser #fbtable").scrollTop(0);	// IE and Safari
-					$("#sfbrowser tbody").scrollTop(0);		// Firefox
+					mTbB.scrollTop(0);		// Firefox
 				}
 			}
 		}});
@@ -748,7 +757,7 @@
 						listAdd(data.data).trigger('click');
 						sortFbTable(); // todo: fix scrolltop below because because of
 						$("#sfbrowser #fbtable").scrollTop(0);	// IE and Safari
-						$("#sfbrowser tbody").scrollTop(0);		// Firefox
+						mTbB.scrollTop(0);		// Firefox
 					}
 					return false; // otherwise upload stays open...
 				}
@@ -769,7 +778,7 @@
 	//
 	// get file object from tr
 	function file(tr) {
-		if (!tr) tr = $("#sfbrowser tbody>tr.selected:first");
+		if (!tr) tr = mTbB.find("tr.selected:first");
 		return getPath().contents[$(tr).attr("id")];
 	}
 	// find folder in oTree
@@ -802,11 +811,10 @@
 		return (parseFloat(n)+"")==n;
 	}
 	// trace
-	function trace(o) {
-		if (window.console&&window.console.log) {
+	function trace(o,v) {
+		if ((v||oSettings.debug)&&window.console&&window.console.log) {
 			if (typeof(o)=="string")	window.console.log(o);
 			else						for (var prop in o) window.console.log(prop+":\t"+String(o[prop]).split("\n")[0]);
-			//$("#fbbg").text(o);
 		}
 	}
 	// stop event propagation
@@ -891,7 +899,11 @@
 			mWin.css({width:iWdt+"px",height:iHgt+"px"});
 		}
 		$("#sfbrowser div#fbtable").css({height:(iHgt-230+$("#sfbrowser table>thead").height())+"px"});
-		$("#sfbrowser table>tbody").css({height:(iHgt-230)+"px"});
+		mTbB.css({height:(iHgt-230)+"px"});
+		//
+		var mTblDiv = $("#sfbrowser div#fbtable");
+		var mTable = $("#sfbrowser table");
+		if (mTable.width()>mTblDiv.width()) $("#sfbrowser table tr ").width(mTblDiv.width());
 		$.each( oSettings.plugins, function(i,sPlugin) {
 			if ($.sfbrowser[sPlugin].resizeWindow) $.sfbrowser[sPlugin].resizeWindow(iWdt,iHgt);
 		});
@@ -1053,3 +1065,11 @@
 	// set functions
 	$.sfb = $.fn.sfbrowser;
 })(jQuery);
+
+// opera $(window).height() bugfix for jQuery 1.2.6
+var height_ = jQuery.fn.height;
+jQuery.fn.height = function() {
+    if ( this[0] == window && jQuery.browser.opera && jQuery.browser.version >= 9.50)
+        return window.innerHeight;
+    else return height_.apply(this,arguments);
+};

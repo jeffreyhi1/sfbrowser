@@ -51,6 +51,7 @@ body, html {
 			line-height: 20px;
 			background: url(logo.png) 0px 3px no-repeat;
 			padding-left: 19px;
+			cursor: move;
 		}
 		#sfbrowser #loadbar {
 			display: none;
@@ -188,7 +189,7 @@ body, html {
 	#sfbrowser div#fbtable {
 		height: 226px;
 		/*height: 60%;*/
-		overflow: auto;
+		overflow: auto;/* auto hidden */
 		/*overflow-y: hidden;*/
 		/*overflow-x: hidden;*/
 		border: 2px solid #888;
@@ -238,7 +239,7 @@ body, html {
 		#sfbrowser table>tbody {
 			/*height: 198px;
 			height: 2%;*/
-			/**/
+			
 			height: 198px;
 			overflow: auto; 
 			overflow-x: hidden;			
@@ -248,6 +249,9 @@ body, html {
 				cursor: hand;
 				cursor: pointer;
 				white-space: nowrap;
+			}
+			/*#sfbrowser table thead tr th {
+				overflow: hidden;
 			}
 			#sfbrowser table thead tr th.type {
 				width: 24px;
@@ -260,7 +264,7 @@ body, html {
 			#sfbrowser table thead tr th.buttons {
 				width: 54px;
 				overflow: hidden;
-			}
+			}*/
 			#sfbrowser table tbody tr.over {
 				background-color: #def;
 			}
@@ -271,6 +275,10 @@ body, html {
 					vertical-align: top;/*baseline;*/
 					border-right: 1px solid #def;
 				}
+				/*#sfbrowser table tbody tr td div {
+					width: 90%;
+					overflow: hidden;
+				}*/
 				#sfbrowser td.loading {
 					height: 194px;
 					background: url(loadingb.gif) center center no-repeat;
@@ -345,9 +353,10 @@ body, html {
 /* footer */
 #sfbrowser div#sfbfooter {
 	position: absolute;
-	bottom: 0px;
-	right: 16px;
+	bottom: -6px;
+	left: 10px;
 	font-size: 7px !important; 
+	line-height: 7px !important; 
 	color: #aaa;
 }
 	#sfbrowser div#sfbfooter * {

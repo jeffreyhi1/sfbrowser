@@ -138,10 +138,9 @@
 		iCrpHs = iCrpH;
 		var oCurTarget = this;
 		mSfb.find("div.handle").each(function(i){
-			if ($(this)[0]==oCurTarget) iDragEl = i; // $$ currentTarget IE bug
-//			if ($(this)[0]==e.currentTarget) iDragEl = i; // $$ currentTarget IE bug
+			if ($(this)[0]==oCurTarget) iDragEl = i;
 		});
-		mDragEl = $(this);//$(e.currentTarget);
+		mDragEl = $(this);
 		if (mDragEl[0]==$("div#crop")[0]) iDragEl = 10;
 		$("body").mousemove(dragMove).mouseup(function(){
 			$("body").unbind("mousemove",dragMove);
