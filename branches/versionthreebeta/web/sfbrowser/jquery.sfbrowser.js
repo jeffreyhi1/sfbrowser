@@ -87,6 +87,7 @@
 *	- fixed: doubleclick vs rename
 *	- added: folder contents caching
 *	- added: cookie remembers position, sizing and path
+*	- added: debug boolean for console tracing
 *
 */
 ;(function($) {

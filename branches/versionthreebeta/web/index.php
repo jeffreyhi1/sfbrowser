@@ -105,6 +105,9 @@
 			<p>You can easily make SFBrowser into another language. Simply copy one of the existing language js files (sfbrowser/lang/[iso].js and sfbrowser/plugins/[name]/lang/[iso].js) and name them the <a href="http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2#Officially_assigned_code_elements">ISO_3166 code</a> of the new language (in lowercase). Then edit the <span class="property">SFB_LANG</span> constant in 'sfbrowser/connectors/php/config.php' to that ISO code.<br/>
 			Should you make any language file other than the ones already present, I'd be happy to include them in a later release. Please send them to: sfbrowser at sjeiti dot com.</p>
 
+			<h3>debug</h3>
+			<p>Setting the <span class="property">SFB_DEBUG</span> value will do three things. Setting the value to true will cause inclusion of the uncompressed scripts rather than the minified ones. It will enable tracing in the console window. It will log all server side actions into 'sfbrowser/connectors/php/log.txt'.
+
 
 			<h3>javascript</h3>
 
