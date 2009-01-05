@@ -328,7 +328,7 @@
 					var bReturn = false;
 					switch (e.keyCode) {
 						case 81: closeSFB(); break;
-						case 65: mTbB.("tr").each(function(){$(this).addClass("selected")}); break;
+						case 65: mTbB.find("tr").each(function(){$(this).addClass("selected")}); break;
 						case 70: if ($("#sfbrowser").length==0) $.sfb(oSettings); break;
 						default: bReturn = true;
 					}
