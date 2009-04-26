@@ -1,7 +1,7 @@
 /*
 * jQuery SFBrowser
 *
-* Version: 3.0.0
+* Version: 3.0.1
 *
 * Copyright (c) 2008 Ron Valstar http://www.sjeiti.com/
 *
@@ -53,6 +53,7 @@
 *	- Spanish translation: Juan Razeto
 *
 * todo:
+*	- remove array prototype
 *	- fix: Opera sucks
 *	- revise: keyboard shortcuts
 *	- revise: 'fixed' property: not very nescesary
@@ -77,17 +78,7 @@
 *	- fix: since resizing is possible abbreviating long filenames does not cut it (...)
 *
 * in this update:
-*	- added: server side script connectors (localisation is now js only)
-*	- added: interface for plugins
-*	- added: image resize/cropping plugin
-*	- added: loading feedback for folder opening
-*	- added: window dragging and resizing
-*	- changed: php security
-*	- changed: cleaned up some of code
-*	- fixed: doubleclick vs rename
-*	- added: folder contents caching
-*	- added: cookie remembers position, sizing and path
-*	- added: debug boolean for console tracing
+*	- added: audio and video preview
 *
 */
 ;(function($) {
@@ -119,7 +110,7 @@
 	// default settings
 	$.sfbrowser = {
 		 id: "SFBrowser"
-		,version: "3.0.0"
+		,version: "3.0.1"
 		,defaults: {
 			 title:		""						// the title
 			,select:	function(a){trace(a)}	// calback function on choose
@@ -138,6 +129,7 @@
 			// basic control (normally no need to change)
 			,img:		["gif","jpg","jpeg","png"]
 			,ascii:		["txt","xml","html","htm","eml","ffcmd","js","as","php","css","java","cpp","pl","log"]
+			,movie:		["mp3","mp4","m4v","m4a","3gp","mov","flv","f4v"]
 			// set from init, explicitly setting these from js can lead to unexpected results.
 			,sfbpath:	"sfbrowser/"			// path of sfbrowser (relative to the page it is run from)
 			,base:		"data/"					// upload folder (relative to sfbpath)
@@ -542,6 +534,30 @@
 					}
 				}});
 			}
+		} else if (oSettings.movie.indexOf(oFile.mime)!=-1) {// preview movie
+			$("#fbpreview").html("<div id=\"previewMovie\"></div>");
+			var iW = $("#fbpreview").width();
+			var iH = $("#fbpreview").height();
+			var sFuri = oSettings.sfbpath+aPath.join("")+sFile; // todo: cleanup img path
+			var sMdPt = oFile.mime=="mp3"?"":"../../"; // todo: extract path from sfbpath
+			swfobject.embedSWF(
+				 oSettings.sfbpath+"css/splayer.swf"
+				,"previewMovie"
+				,iW+"px"
+				,iH+"px"
+				,"9.0.0"
+				,""
+				,{ //flashvars
+					 file:		sMdPt+sFuri
+					,width:		iW
+					,height:	iH
+					,gui:		"playpause,scrubbar"
+					,guiOver:	true
+					,colors:	'{"bg":"0xFFDEDEDE","bg1":"0xFFBBBBBB","fg":"0xFF666666","fg1":"0xFFD13A3A"}'
+				},{ // params
+					 menu:	"false"
+				}
+			);
 		}
 		return false;
 	}
