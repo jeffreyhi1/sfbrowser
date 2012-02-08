@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+		<title>test aviary feather</title>
+		
+		<script type="text/javascript"> 
+			var _featherLoaded = false; 
+			Feather_APIKey = 'd1d1d338b04ba86a8fe199cec4fb9f65'; // 720cc9b6eed98a7e0bdd5be30872b351
+			Feather_Theme = 'bluesky'; 
+			Feather_EditOptions = 'all'; 
+			Feather_OpenType = 'lightbox';  // lightbox inject
+			Feather_CropSizes = '320x240,640x480,800x600,1280x1024'; 
+				  
+			Feather_OnSave = function(id, url) { 
+				var e = document.getElementById(id); 
+				e.src = url; 
+				aviaryeditor_close(); 
+			} 
+			 
+			Feather_OnLoad = function() { 
+				_featherLoaded = true; 
+			} 
+			 
+			function launchEditor(imageid) { 
+				if (_featherLoaded) { 
+					var src = document.getElementById(imageid).src; 
+					aviaryeditor(imageid, src); 
+				} 
+			} 
+		</script> 
+		<script type="text/javascript" src="http://feather.aviary.com/js/feather.js"></script>
+
+	</head>
+	<body>
+		<h1><span>test aviary feather</span></h1>
+ 
+		<img id="11234" src="http://localhost/googlecode/sfbrowser/svn/trunk/web/data/ImageFolder/Lorenz_groen.jpg"/> 
+		<p><input type="image" src="http://www.aviary.com/images/feather/edit-photo.png" value="Edit photo" onclick="launchEditor('11234'); return false;" /></p>
+		
+	</body>
+</html>
