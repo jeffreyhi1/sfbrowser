@@ -1,0 +1,179 @@
+library0.swf Movie Report
+--------------------------
+
+Frame #    Frame Bytes    Total Bytes    Scene
+-------    -----------    -----------    ----------------
+      1        5378526        5378526    Scene 1 (AS 3.0 Classes Export Frame)
+
+Scene                        Shape Bytes    Text Bytes    ActionScript Bytes
+-------------------------    -----------    ----------    ------------------
+Scene 1                                0             0                     0
+
+Symbol                       Shape Bytes    Text Bytes    ActionScript Bytes
+-------------------------    -----------    ----------    ------------------
+cardbgtypes                           38             0                     0
+animMask                            2588             0                     0
+oor_r                                  0             0                     0
+oor_l                                  0             0                     0
+cardStructuur                         43             0                     0
+oogdicht                               0             0                     0
+wenkbrauw11                            0             0                     0
+wenkbrauw10                            0             0                     0
+wenkbrauw9                             0             0                     0
+wenkbrauw8                             0             0                     0
+wenkbrauw7                             0             0                     0
+wenkbrauw6                             0             0                     0
+wenkbrauw5                             0             0                     0
+wenkbrauw4                             0             0                     0
+wenkbrauw3                             0             0                     0
+wenkbrauw2                             0             0                     0
+zwenksbrauwen                          0             0                     0
+contactMail                            0            67                     0
+contactRoute                           0            53                     0
+maskSmall                            111             0                     0
+maskBig                               81             0                     0
+eyeline                               40             0                     0
+meta                                   0           722                     0
+saf                                    0          1419                     0
+cardback                               0             0                     0
+cardfront                             38           167                     0
+cardtext                               0           208                     0
+corner                                 0             0                     0
+close                                  0             0                     0
+verstuurknop                           0           160                     0
+laatmaarhoren                         49            68                     0
+contacthand                            0           707                     0
+anim                                   0             0                     0
+waitimg                              500             0                     0
+wait                                   0             0                     0
+
+Font Name                 Bytes        Characters    
+----------------------    ---------    --------------
+Klavika                       44100     !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ¡¢£¤¥¦§¨©ª«¬­®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿˆ˜–—‘’‚“”„†‡•…‰‹›€™
+
+ActionScript Bytes    Location
+------------------    --------
+              4015    ActionScript 3.0 Classes
+
+Bitmap                     Compressed    Compression
+-----------------------    ----------  --------  -----------
+rechts_oog.jpg                 25745       67600   Imported JPEG=102
+links_oog.jpg                  25481       67600   Imported JPEG=102
+anim_33.png                   482964     2880000   Lossless
+ogen-half-dicht.png            11063      404040   JPEG Quality=60
+oogdicht.png                    7048      404040   JPEG Quality=60
+WENKBRAUWEN_00001.png          24471      180616   JPEG Quality=60
+WENKBRAUWEN_00002.png          24468      180616   JPEG Quality=60
+WENKBRAUWEN_00003.png          24467      180616   JPEG Quality=60
+WENKBRAUWEN_00004.png          24467      180616   JPEG Quality=60
+WENKBRAUWEN_00005.png          24459      180616   JPEG Quality=60
+WENKBRAUWEN_00006.png          24477      180616   JPEG Quality=60
+WENKBRAUWEN_00007.png          24446      180616   JPEG Quality=60
+WENKBRAUWEN_00008.png          24446      180616   JPEG Quality=60
+WENKBRAUWEN_00009.png          24431      180616   JPEG Quality=60
+WENKBRAUWEN_00010.png          24419      180616   JPEG Quality=60
+WENKBRAUWEN_00011.png          24433      180616   JPEG Quality=60
+links_0.png                     5456      173400   JPEG Quality=60
+links_1.png                     5405      173400   JPEG Quality=60
+links_2.png                     5408      173400   JPEG Quality=60
+links_3.png                     5340      173400   JPEG Quality=60
+links_4.png                     5318      173400   JPEG Quality=60
+links_5.png                     5304      173400   JPEG Quality=60
+links_6.png                     5306      173400   JPEG Quality=60
+links_7.png                     5281      173400   JPEG Quality=60
+links_8.png                     5239      173400   JPEG Quality=60
+links_9.png                     5213      173400   JPEG Quality=60
+links_10.png                    5180      173400   JPEG Quality=60
+links_11.png                    5135      173400   JPEG Quality=60
+links_12.png                    5066      173400   JPEG Quality=60
+links_13.png                    4979      173400   JPEG Quality=60
+rechts_14.png                   5268      173400   JPEG Quality=60
+rechts_15.png                   5384      173400   JPEG Quality=60
+rechts_16.png                   5386      173400   JPEG Quality=60
+rechts_17.png                   5390      173400   JPEG Quality=60
+rechts_18.png                   5483      173400   JPEG Quality=60
+rechts_19.png                   5502      173400   JPEG Quality=60
+rechts_20.png                   5578      173400   JPEG Quality=60
+rechts_21.png                   5557      173400   JPEG Quality=60
+rechts_22.png                   5601      173400   JPEG Quality=60
+rechts_23.png                   5593      173400   JPEG Quality=60
+rechts_24.png                   5631      173400   JPEG Quality=60
+rechts_25.png                   5622      173400   JPEG Quality=60
+rechts_26.png                   5683      173400   JPEG Quality=60
+rechts_27.png                   5672      173400   JPEG Quality=60
+anim_32.png                    32642     2880000   JPEG Quality=60
+anim_31.png                    34758     2880000   JPEG Quality=60
+anim_30.png                    37080     2880000   JPEG Quality=60
+anim_29.png                    41337     2880000   JPEG Quality=60
+anim_28.png                    42888     2880000   JPEG Quality=60
+anim_27.png                    44344     2880000   JPEG Quality=60
+anim_26.png                    45399     2880000   JPEG Quality=60
+anim_25.png                    44160     2880000   JPEG Quality=60
+anim_24.png                    36471     2880000   JPEG Quality=60
+anim_23.png                    36462     2880000   JPEG Quality=60
+anim_22.png                    36714     2880000   JPEG Quality=60
+anim_21.png                    36954     2880000   JPEG Quality=60
+anim_20.png                    37099     2880000   JPEG Quality=60
+anim_19.png                    38365     2880000   JPEG Quality=60
+anim_18.png                    41491     2880000   JPEG Quality=60
+anim_17.png                    41140     2880000   JPEG Quality=60
+anim_16.png                    40870     2880000   JPEG Quality=60
+anim_15.png                    40594     2880000   JPEG Quality=60
+anim_14.png                    40244     2880000   JPEG Quality=60
+anim_13.png                    39753     2880000   JPEG Quality=60
+anim_12.png                    38182     2880000   JPEG Quality=60
+anim_11.png                    37890     2880000   JPEG Quality=60
+anim_10.png                    38571     2880000   JPEG Quality=60
+anim_9.png                     37497     2880000   JPEG Quality=60
+anim_8.png                     38544     2880000   JPEG Quality=60
+anim_7.png                     39472     2880000   JPEG Quality=60
+anim_6.png                     40145     2880000   JPEG Quality=60
+anim_5.png                     40043     2880000   JPEG Quality=60
+anim_4.png                     40419     2880000   JPEG Quality=60
+anim_3.png                     69895     2880000   JPEG Quality=60
+anim_2.png                     53700     2880000   JPEG Quality=60
+anim_1.png                     43772     2880000   JPEG Quality=60
+anim_0.png                    628374     2880000   Lossless
+anim_34.png                    31609     2880000   JPEG Quality=60
+anim_35.png                    32921     2880000   JPEG Quality=60
+anim_36.png                    35175     2880000   JPEG Quality=60
+anim_37.png                    38054     2880000   JPEG Quality=60
+anim_38.png                    41538     2880000   JPEG Quality=60
+anim_39.png                    42950     2880000   JPEG Quality=60
+anim_40.png                    44250     2880000   JPEG Quality=60
+anim_41.png                    43744     2880000   JPEG Quality=60
+anim_42.png                    36464     2880000   JPEG Quality=60
+anim_43.png                    36459     2880000   JPEG Quality=60
+anim_44.png                    36573     2880000   JPEG Quality=60
+anim_45.png                    36984     2880000   JPEG Quality=60
+anim_46.png                    37219     2880000   JPEG Quality=60
+anim_47.png                    37184     2880000   JPEG Quality=60
+anim_48.png                    38267     2880000   JPEG Quality=60
+anim_49.png                    40119     2880000   JPEG Quality=60
+anim_50.png                    40544     2880000   JPEG Quality=60
+anim_51.png                    41477     2880000   JPEG Quality=60
+anim_52.png                    41264     2880000   JPEG Quality=60
+anim_53.png                    40983     2880000   JPEG Quality=60
+anim_54.png                    40435     2880000   JPEG Quality=60
+anim_55.png                    38724     2880000   JPEG Quality=60
+anim_56.png                    38496     2880000   JPEG Quality=60
+anim_57.png                    39144     2880000   JPEG Quality=60
+anim_58.png                    38657     2880000   JPEG Quality=60
+anim_59.png                    39839     2880000   JPEG Quality=60
+anim_60.png                    40463     2880000   JPEG Quality=60
+anim_61.png                    41395     2880000   JPEG Quality=60
+anim_62.png                    42329     2880000   JPEG Quality=60
+anim_63.png                    43292     2880000   JPEG Quality=60
+anim_64.png                    43769     2880000   JPEG Quality=60
+anim_65.png                    42616     2880000   JPEG Quality=60
+anim_66.png                    39452     2880000   JPEG Quality=60
+anim_67.png                   684031     2880000   Lossless
+contacthand.png               187275      623360   Lossless
+laatkeesietshoren_hand.png    229390     1440768   Lossless
+paper tile.png                   879       54144   JPEG Quality=75
+sluit.png                        179         780   Lossless
+flip.png                         423        1496   Lossless
+
+
+
+
